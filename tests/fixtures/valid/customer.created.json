@@ -1,0 +1,18 @@
+{
+  "event_id": "06eebc99-9c0b-4ef8-bb6d-6bb9bd380a77",
+  "event_type": "customer.created",
+  "event_version": 1,
+  "occurred_at": "2026-09-01T16:37:00.000Z",
+  "producer": "evershop",
+  "business_key": {
+    "customer_id": "cust_999"
+  },
+  "payload": {
+    "customer_id": "cust_999",
+    "email": "cliente@exemplo.com.br",
+    "full_name": "Felipe Cyberpunk",
+    "tax_id": "123.456.789-00",
+    "phone": "+5511999998888",
+    "created_at": "2026-09-01T16:37:00.000Z"
+  }
+}

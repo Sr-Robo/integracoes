@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://robo.net.br/schemas/v1/events/customer.created.json",
+  "title": "CustomerCreatedPayload",
+  "description": "Payload emitido quando um novo cliente é registrado",
+  "type": "object",
+  "required": [
+    "customer_id",
+    "email",
+    "full_name",
+    "created_at"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "customer_id": { "type": "string", "minLength": 1 },
+    "email": { "type": "string", "format": "email" },
+    "full_name": { "type": "string", "minLength": 1 },
+    "tax_id": { "type": "string", "description": "CPF ou CNPJ" },
+    "phone": { "type": "string" },
+    "created_at": { "type": "string", "format": "date-time" }
+  }
+}

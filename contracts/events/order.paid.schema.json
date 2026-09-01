@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://robo.net.br/schemas/v1/events/order.paid.json",
+  "title": "OrderPaidPayload",
+  "description": "Payload emitido quando o pagamento do pedido é confirmado",
+  "type": "object",
+  "required": [
+    "order_id",
+    "order_number",
+    "payment",
+    "paid_at"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "order_id": { "type": "string", "minLength": 1 },
+    "order_number": { "type": "string", "minLength": 1 },
+    "payment": {
+      "type": "object",
+      "required": ["transaction_id", "method", "amount", "currency", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "transaction_id": { "type": "string", "minLength": 1 },
+        "method": { "type": "string", "enum": ["pix", "credit_card", "boleto", "other"] },
+        "amount": { "type": "number", "minimum": 0 },
+        "currency": { "type": "string", "default": "BRL" },
+        "status": { "type": "string", "enum": ["paid", "settled", "authorized"] },
+        "gateway": { "type": "string" }
+      }
+    },
+    "paid_at": { "type": "string", "format": "date-time" }
+  }
+}

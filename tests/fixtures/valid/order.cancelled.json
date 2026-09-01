@@ -1,0 +1,18 @@
+{
+  "event_id": "d3eebc99-9c0b-4ef8-bb6d-6bb9bd380a44",
+  "event_type": "order.cancelled",
+  "event_version": 1,
+  "occurred_at": "2026-09-01T16:34:00.000Z",
+  "producer": "evershop",
+  "business_key": {
+    "order_number": "OR-1002"
+  },
+  "payload": {
+    "order_id": "ord_54321",
+    "order_number": "OR-1002",
+    "reason": "Cliente solicitou cancelamento",
+    "cancelled_by": "customer",
+    "refund_status": "refunded",
+    "cancelled_at": "2026-09-01T16:34:00.000Z"
+  }
+}

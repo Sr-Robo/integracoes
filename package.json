@@ -1,0 +1,21 @@
+{
+  "name": "@sr-robo/integracoes",
+  "version": "1.0.0",
+  "description": "Barramento de integracoes, contratos e workers da plataforma e-commerce",
+  "main": "index.js",
+  "scripts": {
+    "test": "node tests/validate-contracts.test.js",
+    "smoke:bullmq": "node smoke-tests/bullmq-smoke.js"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "bullmq": "^5.41.0",
+    "ioredis": "^5.5.0"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "private": true
+}

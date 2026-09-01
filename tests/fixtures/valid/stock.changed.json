@@ -1,0 +1,20 @@
+{
+  "event_id": "c2eebc99-9c0b-4ef8-bb6d-6bb9bd380a33",
+  "event_type": "stock.changed",
+  "event_version": 1,
+  "occurred_at": "2026-09-01T16:33:00.000Z",
+  "producer": "erpnext",
+  "business_key": {
+    "sku": "ROBO-LED-01"
+  },
+  "payload": {
+    "sku": "ROBO-LED-01",
+    "warehouse_id": "Stores - SR",
+    "qty_available": 14,
+    "qty_reserved": 1,
+    "qty_total": 15,
+    "change_delta": -1,
+    "reason": "sale",
+    "updated_at": "2026-09-01T16:33:00.000Z"
+  }
+}

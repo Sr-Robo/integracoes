@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://robo.net.br/schemas/v1/events/product.updated.json",
+  "title": "ProductUpdatedPayload",
+  "description": "Payload emitido quando atributos cadastrais de um produto/SKU são atualizados",
+  "type": "object",
+  "required": [
+    "sku",
+    "name",
+    "price",
+    "is_active",
+    "updated_at"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "product_id": { "type": "string" },
+    "sku": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "price": { "type": "number", "minimum": 0 },
+    "cost_price": { "type": "number", "minimum": 0 },
+    "weight_kg": { "type": "number", "minimum": 0 },
+    "dimensions": {
+      "type": "object",
+      "required": ["width_cm", "height_cm", "length_cm"],
+      "additionalProperties": false,
+      "properties": {
+        "width_cm": { "type": "number", "minimum": 0 },
+        "height_cm": { "type": "number", "minimum": 0 },
+        "length_cm": { "type": "number", "minimum": 0 }
+      }
+    },
+    "is_active": { "type": "boolean" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

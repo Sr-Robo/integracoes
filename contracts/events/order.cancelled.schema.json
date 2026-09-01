@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://robo.net.br/schemas/v1/events/order.cancelled.json",
+  "title": "OrderCancelledPayload",
+  "description": "Payload emitido quando um pedido é cancelado",
+  "type": "object",
+  "required": [
+    "order_id",
+    "order_number",
+    "reason",
+    "cancelled_at"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "order_id": { "type": "string", "minLength": 1 },
+    "order_number": { "type": "string", "minLength": 1 },
+    "reason": { "type": "string", "minLength": 1 },
+    "cancelled_by": { "type": "string", "enum": ["customer", "admin", "system", "payment_timeout"] },
+    "refund_status": { "type": "string", "enum": ["not_applicable", "pending", "refunded"] },
+    "cancelled_at": { "type": "string", "format": "date-time" }
+  }
+}

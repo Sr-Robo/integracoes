@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://robo.net.br/schemas/v1/events/stock.changed.json",
+  "title": "StockChangedPayload",
+  "description": "Payload emitido quando o saldo de estoque de um SKU é alterado no ERPNext",
+  "type": "object",
+  "required": [
+    "sku",
+    "qty_available",
+    "qty_total",
+    "updated_at"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "sku": { "type": "string", "minLength": 1 },
+    "warehouse_id": { "type": "string" },
+    "qty_available": { "type": "number", "description": "Quantidade livre para venda (total - reservado)" },
+    "qty_reserved": { "type": "number", "default": 0 },
+    "qty_total": { "type": "number", "description": "Quantidade física no depósito" },
+    "change_delta": { "type": "number", "description": "Variação líquida aplicada nesta movimentação" },
+    "reason": { "type": "string", "enum": ["sale", "return", "restock", "adjustment", "inventory_count"] },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

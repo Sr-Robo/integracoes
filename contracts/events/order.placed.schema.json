@@ -1,0 +1,108 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://robo.net.br/schemas/v1/events/order.placed.json",
+  "title": "OrderPlacedPayload",
+  "description": "Payload emitido quando um pedido é criado no checkout da loja",
+  "type": "object",
+  "required": [
+    "order_id",
+    "order_number",
+    "customer",
+    "shipping_address",
+    "items",
+    "totals",
+    "currency",
+    "created_at"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "order_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "order_number": {
+      "type": "string",
+      "minLength": 1
+    },
+    "customer": {
+      "type": "object",
+      "required": ["email", "full_name"],
+      "additionalProperties": false,
+      "properties": {
+        "customer_id": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "full_name": { "type": "string", "minLength": 1 },
+        "tax_id": { "type": "string", "description": "CPF ou CNPJ do comprador" },
+        "phone": { "type": "string" }
+      }
+    },
+    "shipping_address": {
+      "type": "object",
+      "required": ["full_name", "address1", "city", "province", "postal_code", "country"],
+      "additionalProperties": false,
+      "properties": {
+        "full_name": { "type": "string" },
+        "address1": { "type": "string" },
+        "address2": { "type": "string" },
+        "city": { "type": "string" },
+        "province": { "type": "string" },
+        "postal_code": { "type": "string" },
+        "country": { "type": "string", "minLength": 2, "maxLength": 2 },
+        "phone": { "type": "string" }
+      }
+    },
+    "billing_address": {
+      "type": "object",
+      "properties": {
+        "full_name": { "type": "string" },
+        "address1": { "type": "string" },
+        "address2": { "type": "string" },
+        "city": { "type": "string" },
+        "province": { "type": "string" },
+        "postal_code": { "type": "string" },
+        "country": { "type": "string" },
+        "phone": { "type": "string" }
+      }
+    },
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["product_id", "sku", "name", "qty", "price", "total"],
+        "additionalProperties": false,
+        "properties": {
+          "product_id": { "type": "string" },
+          "sku": { "type": "string", "minLength": 1 },
+          "name": { "type": "string" },
+          "qty": { "type": "integer", "minimum": 1 },
+          "price": { "type": "number", "minimum": 0 },
+          "total": { "type": "number", "minimum": 0 }
+        }
+      }
+    },
+    "totals": {
+      "type": "object",
+      "required": ["subtotal", "shipping_fee", "grand_total"],
+      "additionalProperties": false,
+      "properties": {
+        "subtotal": { "type": "number", "minimum": 0 },
+        "shipping_fee": { "type": "number", "minimum": 0 },
+        "discount": { "type": "number", "default": 0 },
+        "tax": { "type": "number", "default": 0 },
+        "grand_total": { "type": "number", "minimum": 0 }
+      }
+    },
+    "currency": {
+      "type": "string",
+      "default": "BRL"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

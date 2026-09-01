@@ -1,0 +1,48 @@
+{
+  "event_id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+  "event_type": "order.placed",
+  "event_version": 1,
+  "occurred_at": "2026-09-01T16:30:00.000Z",
+  "producer": "evershop",
+  "business_key": {
+    "order_number": "OR-1001"
+  },
+  "payload": {
+    "order_id": "ord_12345",
+    "order_number": "OR-1001",
+    "customer": {
+      "customer_id": "cust_999",
+      "email": "cliente@exemplo.com.br",
+      "full_name": "Felipe Cyberpunk",
+      "tax_id": "123.456.789-00",
+      "phone": "+5511999998888"
+    },
+    "shipping_address": {
+      "full_name": "Felipe Cyberpunk",
+      "address1": "Rua das Flores, 100",
+      "address2": "Apto 42",
+      "city": "São Paulo",
+      "province": "SP",
+      "postal_code": "01001-000",
+      "country": "BR"
+    },
+    "items": [
+      {
+        "product_id": "prod_1",
+        "sku": "ROBO-LED-01",
+        "name": "Teclado Mecânico RGB Sr. Robô",
+        "qty": 1,
+        "price": 350.00,
+        "total": 350.00
+      }
+    ],
+    "totals": {
+      "subtotal": 350.00,
+      "shipping_fee": 25.00,
+      "discount": 0.00,
+      "grand_total": 375.00
+    },
+    "currency": "BRL",
+    "created_at": "2026-09-01T16:30:00.000Z"
+  }
+}

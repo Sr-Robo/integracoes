@@ -1,0 +1,10 @@
+{
+  "event_type": "order.placed",
+  "event_version": 1,
+  "occurred_at": "2026-09-01T16:30:00.000Z",
+  "producer": "evershop",
+  "business_key": {
+    "order_number": "OR-1001"
+  },
+  "payload": {}
+}

@@ -1,0 +1,11 @@
+{
+  "event_id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+  "event_type": "unregistered.event.type",
+  "event_version": 1,
+  "occurred_at": "2026-09-01T16:30:00.000Z",
+  "producer": "evershop",
+  "business_key": {
+    "order_number": "OR-1001"
+  },
+  "payload": {}
+}

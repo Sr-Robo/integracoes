@@ -1,0 +1,25 @@
+{
+  "event_id": "17eebc99-9c0b-4ef8-bb6d-6bb9bd380a88",
+  "event_type": "return.requested",
+  "event_version": 1,
+  "occurred_at": "2026-09-01T16:38:00.000Z",
+  "producer": "waha",
+  "business_key": {
+    "return_id": "ret_5544"
+  },
+  "payload": {
+    "return_id": "ret_5544",
+    "order_number": "OR-1001",
+    "customer_id": "cust_999",
+    "items": [
+      {
+        "sku": "ROBO-LED-01",
+        "qty": 1,
+        "reason": "Produto veio com led apagado na tecla Esc"
+      }
+    ],
+    "status": "requested",
+    "notes": "Cliente enviou foto no WhatsApp",
+    "requested_at": "2026-09-01T16:38:00.000Z"
+  }
+}

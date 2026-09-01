@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://robo.net.br/schemas/v1/envelope.json",
+  "title": "CanonicalEventEnvelope",
+  "description": "Envelope canônico para todos os eventos trafegados no barramento de integração",
+  "type": "object",
+  "required": [
+    "event_id",
+    "event_type",
+    "event_version",
+    "occurred_at",
+    "producer",
+    "business_key",
+    "payload"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Identificador único global do evento (UUIDv4)"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "order.placed",
+        "order.paid",
+        "order.cancelled",
+        "order.shipped",
+        "stock.changed",
+        "product.updated",
+        "customer.created",
+        "return.requested"
+      ],
+      "description": "Tipo do evento de negócio"
+    },
+    "event_version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Versão do schema do evento (inicia em 1)"
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp ISO-8601 de quando o evento ocorreu no emissor"
+    },
+    "producer": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Sistema originador do evento (ex.: evershop, erpnext, waha, worker)"
+    },
+    "business_key": {
+      "type": "object",
+      "minProperties": 1,
+      "description": "Chave(s) de correlação de negócio do evento (ex.: order_number, sku, customer_id)",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "payload": {
+      "type": "object",
+      "description": "Dados específicos do evento validados pelo schema do evento"
+    }
+  }
+}

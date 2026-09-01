@@ -1,0 +1,23 @@
+{
+  "event_id": "b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22",
+  "event_type": "order.paid",
+  "event_version": 1,
+  "occurred_at": "2026-09-01T16:32:00.000Z",
+  "producer": "evershop",
+  "business_key": {
+    "order_number": "OR-1001"
+  },
+  "payload": {
+    "order_id": "ord_12345",
+    "order_number": "OR-1001",
+    "payment": {
+      "transaction_id": "tx_pix_998877",
+      "method": "pix",
+      "amount": 375.00,
+      "currency": "BRL",
+      "status": "paid",
+      "gateway": "pix_direct"
+    },
+    "paid_at": "2026-09-01T16:32:00.000Z"
+  }
+}

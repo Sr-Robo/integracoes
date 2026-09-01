@@ -1,0 +1,25 @@
+{
+  "event_id": "f5eebc99-9c0b-4ef8-bb6d-6bb9bd380a66",
+  "event_type": "product.updated",
+  "event_version": 1,
+  "occurred_at": "2026-09-01T16:36:00.000Z",
+  "producer": "erpnext",
+  "business_key": {
+    "sku": "ROBO-LED-01"
+  },
+  "payload": {
+    "product_id": "prod_1",
+    "sku": "ROBO-LED-01",
+    "name": "Teclado Mecânico RGB Sr. Robô V2",
+    "price": 380.00,
+    "cost_price": 190.00,
+    "weight_kg": 0.85,
+    "dimensions": {
+      "width_cm": 35.0,
+      "height_cm": 4.0,
+      "length_cm": 15.0
+    },
+    "is_active": true,
+    "updated_at": "2026-09-01T16:36:00.000Z"
+  }
+}
