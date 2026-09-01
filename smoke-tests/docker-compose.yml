@@ -1,0 +1,9 @@
+name: valkey-smoke-test
+
+services:
+  valkey-smoke:
+    image: valkey/valkey:8.0.2-alpine
+    container_name: valkey-smoke
+    ports:
+      - "127.0.0.1:16379:6379"
+    restart: "no"
