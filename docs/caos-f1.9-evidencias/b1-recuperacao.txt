@@ -1,0 +1,29 @@
+[Worker:orders] Recebido evento order.placed (job dup-teste-1788311717071, event_id 8724a13b-6228-493f-8256-62d43abcdf9e)
+[Worker:orders] Evento 8724a13b-6228-493f-8256-62d43abcdf9e já processado anteriormente. Ignorando silenciosamente (ACK).
+[Worker:orders] Recebido evento order.placed (job 9fc4c5e6-6523-43fe-98d7-90502c979949, event_id 9fc4c5e6-6523-43fe-98d7-90502c979949)
+[Worker:orders] ERRO DE CONTRATO no evento 9fc4c5e6-6523-43fe-98d7-90502c979949: Payload inválido para order.placed: root: must have required property 'order_number', root: must have required property 'customer', root: must have required property 'shipping_address', root: must have required property 'items', root: must have required property 'totals', root: must have required property 'currency', root: must have required property 'created_at'
+[Relay] Evento publicado no BullMQ: order.placed (9fc4c5e6-6523-43fe-98d7-90502c979949)
+[Worker:orders] Recebido evento order.placed (job c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99, event_id c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99)
+[Relay] Evento publicado no BullMQ: order.placed (c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99)
+[Worker:orders] Disparando webhook n8n para evento order.placed...
+[Worker:orders] Job c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99 falhou na tentativa 1/5: getaddrinfo ENOTFOUND n8n
+[Worker:orders] Recebido evento order.placed (job c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99, event_id c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99)
+[Worker:orders] Disparando webhook n8n para evento order.placed...
+[Worker:orders] Job c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99 falhou na tentativa 2/5: getaddrinfo ENOTFOUND n8n
+[Worker:orders] Recebido evento order.placed (job c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99, event_id c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99)
+[Worker:orders] Disparando webhook n8n para evento order.placed...
+[Worker:orders] Job c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99 falhou na tentativa 3/5: getaddrinfo ENOTFOUND n8n
+[Worker:orders] Recebido evento order.placed (job c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99, event_id c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99)
+[Worker:orders] Disparando webhook n8n para evento order.placed...
+[Worker:orders] Job c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99 falhou na tentativa 4/5: getaddrinfo ENOTFOUND n8n
+[Worker:orders] Recebido evento order.placed (job c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99, event_id c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99)
+[Worker:orders] Disparando webhook n8n para evento order.placed...
+[Worker:orders] Job c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99 falhou na tentativa 5/5: getaddrinfo ENOTFOUND n8n
+[Worker:orders] Job c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99 esgotou todas as tentativas! Movendo para DLQ...
+[Worker:orders] Recebido evento order.placed (job c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99, event_id c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99)
+[Worker:orders] Disparando webhook n8n para evento order.placed...
+[Worker:orders] Evento c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99 processado com sucesso (n8n HTTP 200).
+[Relay] Evento publicado no BullMQ: order.placed (b1a05102-9c0b-4ef8-bb6d-6bb9bd380a88)
+[Worker:orders] Recebido evento order.placed (job b1a05102-9c0b-4ef8-bb6d-6bb9bd380a88, event_id b1a05102-9c0b-4ef8-bb6d-6bb9bd380a88)
+[Worker:orders] Disparando webhook n8n para evento order.placed...
+[Worker:orders] Evento b1a05102-9c0b-4ef8-bb6d-6bb9bd380a88 processado com sucesso (n8n HTTP 200).

@@ -1,0 +1,6 @@
+[Worker:orders] ERRO DE CONTRATO no evento 9fc4c5e6-6523-43fe-98d7-90502c979949: Payload inválido para order.placed: root: must have required property 'order_number', root: must have required property 'customer', root: must have required property 'shipping_address', root: must have required property 'items', root: must have required property 'totals', root: must have required property 'currency', root: must have required property 'created_at'
+--- verificação complementar 0b (2026-09-01T22:31:15-03:00) ---
+DLQ orders (esperado 1): WRONGTYPE Operation against a key holding the wrong kind of value
+processed_events chaos-test (esperado 0): 1
+retries desde sempre (esperado 0): 5
+jobs na DLQ: WRONGTYPE Operation against a key holding the wrong kind of value

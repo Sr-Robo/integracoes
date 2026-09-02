@@ -1,0 +1,5 @@
+--- A7 (2026-09-01T22:43:03-03:00) ---
+[Worker:orders] Evento 407e3c5d-a58e-43aa-a65b-b0742bf5151a processado com sucesso (n8n HTTP 200).
+processed_events do 10004 (esperado 1 — REPOSTO): 1
+orders-dlq (esperado 1): 1
+orders:failed (esperado 0): 0

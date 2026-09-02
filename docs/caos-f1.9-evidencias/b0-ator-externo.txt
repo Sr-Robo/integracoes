@@ -1,0 +1,81 @@
+--- captura (2026-09-01T23:07:28-03:00) ---
+--- logs do integracoes cobrindo a janela do ator externo (2026-09-02 01:14-01:19 UTC):
+[Worker:orders] Recebido evento order.placed (job c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99, event_id c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99)
+[Relay] Evento publicado no BullMQ: order.placed (c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99)
+[Worker:orders] Job c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99 falhou na tentativa 1/5: getaddrinfo ENOTFOUND n8n
+[Worker:orders] Recebido evento order.placed (job c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99, event_id c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99)
+[Worker:orders] Job c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99 falhou na tentativa 2/5: getaddrinfo ENOTFOUND n8n
+[Worker:orders] Recebido evento order.placed (job c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99, event_id c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99)
+[Worker:orders] Job c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99 falhou na tentativa 3/5: getaddrinfo ENOTFOUND n8n
+[Worker:orders] Recebido evento order.placed (job c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99, event_id c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99)
+[Worker:orders] Job c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99 falhou na tentativa 4/5: getaddrinfo ENOTFOUND n8n
+[Worker:orders] Recebido evento order.placed (job c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99, event_id c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99)
+[Worker:orders] Job c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99 falhou na tentativa 5/5: getaddrinfo ENOTFOUND n8n
+[Worker:orders] Job c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99 esgotou todas as tentativas! Movendo para DLQ...
+[Worker:orders] Recebido evento order.placed (job c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99, event_id c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99)
+[Worker:orders] Evento c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99 processado com sucesso (n8n HTTP 200).
+[Relay] Evento publicado no BullMQ: order.placed (b1a05102-9c0b-4ef8-bb6d-6bb9bd380a88)
+[Worker:orders] Recebido evento order.placed (job b1a05102-9c0b-4ef8-bb6d-6bb9bd380a88, event_id b1a05102-9c0b-4ef8-bb6d-6bb9bd380a88)
+[Worker:orders] Evento b1a05102-9c0b-4ef8-bb6d-6bb9bd380a88 processado com sucesso (n8n HTTP 200).
+[Relay:reconcile] Evento publicado no BullMQ: order.placed (9fc4c5e6-6523-43fe-98d7-90502c979949)
+[Relay:reconcile] Evento publicado no BullMQ: order.placed (9fc4c5e6-6523-43fe-98d7-90502c979949)
+[Worker:orders] Recebido evento order.placed (job 0b4e4840-3aa9-44ad-b854-51632f7df916, event_id 0b4e4840-3aa9-44ad-b854-51632f7df916)
+[Relay:reconcile] Evento publicado no BullMQ: order.placed (0b4e4840-3aa9-44ad-b854-51632f7df916)
+[Worker:orders] Evento 0b4e4840-3aa9-44ad-b854-51632f7df916 processado com sucesso (n8n HTTP 200).
+[Relay:reconcile] Evento publicado no BullMQ: order.placed (9fc4c5e6-6523-43fe-98d7-90502c979949)
+[Relay:reconcile] Evento publicado no BullMQ: order.placed (9fc4c5e6-6523-43fe-98d7-90502c979949)
+[Relay:reconcile] Evento publicado no BullMQ: order.placed (9fc4c5e6-6523-43fe-98d7-90502c979949)
+--- processos claude ativos agora (identificar o ator):
+1763303 claude bg-pty-host --bg-pty-host /tmp/cc-daemon-1000/862fdd8e/pty/84f2cc2c.sock 149 44 -- /home/fxlip/.local/share/claude/versions/2.1.257 --session-id 84f2cc2c-295a-4add-a58a-e3f427c2b03f --fork-session --resume /home/fxlip/.claude/projects/-home-fxlip-server/d8a5e3eb-aee0-4177-80f8-e2e152de1577.jsonl --reply-on-resume --add-dir /home/fxlip --permission-mode auto
+1763318 /home/fxlip/.local/share/claude/versions/2.1.257 --session-id 84f2cc2c-295a-4add-a58a-e3f427c2b03f --fork-session --resume /home/fxlip/.claude/projects/-home-fxlip-server/d8a5e3eb-aee0-4177-80f8-e2e152de1577.jsonl --reply-on-resume --add-dir /home/fxlip --permission-mode auto
+1765599 /home/fxlip/.local/bin/claude daemon run --origin transient --spawned-by {"label":"claude","cwd":"/home/fxlip/server/stacks/postgres","pid":1505025}
+1765615 claude bg-pty-host --bg-pty-host /tmp/cc-daemon-1000/862fdd8e/spare/53b27edb.pty.sock 200 50 -- /home/fxlip/.local/share/claude/versions/2.1.258 --bg-spare /tmp/cc-daemon-1000/862fdd8e/spare/53b27edb.claim.sock
+1765620 claude bg-spare --bg-spare /tmp/cc-daemon-1000/862fdd8e/spare/53b27edb.claim.sock
+1786490 tmux new-session -s claude command claude --continue || command claude
+1786492 tmux new-session -s claude command claude --continue || command claude
+1786493 bash -c command claude --continue || command claude
+1786494 claude --continue
+1786774 claude bg-pty-host --bg-pty-host /tmp/cc-daemon-1000/862fdd8e/spare/c134a0ca.pty.sock 200 50 -- /home/fxlip/.local/share/claude/versions/2.1.258 --bg-spare /tmp/cc-daemon-1000/862fdd8e/spare/c134a0ca.claim.sock
+1786791 claude bg-spare --bg-spare /tmp/cc-daemon-1000/862fdd8e/spare/c134a0ca.claim.sock
+2044376 bash /home/fxlip/.claude/jobs/7d3c9ef2/tmp/caos-familiaB.sh
+2044378 bash /home/fxlip/.claude/jobs/7d3c9ef2/tmp/caos-familiaB.sh
+--- board das frentes:
+Board das frentes:
+
+■ interface
+    — sem log ainda
+
+■ back (back) · turno inicio 13/08 21:35
+    último (sessão, 12/08 14:47): Investigado bug do /admin/setting/store não persistir: achado principal é que o container rodando é anterior às edições de debug locais (nunca executaram); achado secundário é um resíduo do commit 761fbcd04 (config/default.json ainda referencia extensions/admin_ptbr, que foi deletada) e o campo storeLanguages comentado em StoreSetting.tsx. Aguardando aprovação do fxlip pra próximos passos.
+    fechados: 2
+    ⚑ 1 diretriz(es) do Opus não confirmada(s)
+
+■ front (front) · turno fim 20/08 16:03
+    último (sessão, 29/08 03:10): Fase 2 (funil) APROVADA na revisão (d0d0593): A1-A4/B1-B2 validados independentemente em dev+produção (carrinho populado via API), ficha revalidada sem regressão. Descoberta: src/pages/frontStore/ era código morto — scanner nunca leu esse dir; overrides de página de /cart e /checkout só ativaram no move da Fase 2. Gotcha registrado no memory. Pendência p/ frente de infra: --no-cache no deploy-ecommerce.sh sem commit no ~/server.
+
+■ hello-world
+    — sem log ainda
+
+■ mind
+    — sem log ainda
+
+■ site
+    — sem log ainda
+
+■ logs (logs) · turno fim 11/08 14:57
+    — sem log ainda
+--- processos claude com hora de criação (2026-09-01T23:39:15-03:00) ---
+    PID                  STARTED     ELAPSED COMMAND
+1763303 ter set  1 19:41:34 2026    03:57:41 claude bg-pty-host fork-session --resume /home/fxlip/.claude/projects/-home-fxlip-server/d8a5e3eb-aee0-4177-80f8-e2e152de1577.jsonl --reply-on-resume --add-dir /home/fxlip --permission-mode auto
+1763318 ter set  1 19:41:34 2026    03:57:40 /home/fxlip/.local/share/claude/versions/2.1.257 --session-id 84f2cc2c-295a-4add-a58a-e3f427c2b03f --fork-session --resume /home/fxlip/.claude/projects/-home-fxlip-server/d8a5e3eb-aee0-4177-80f8-e2e152de1577.jsonl --reply-on-resume --add-dir /home/fxlip --permission-mode auto
+1765599 ter set  1 19:42:34 2026    03:56:41 /home/fxlip/.local/bin/claude daemon run --origin transient 
+1786490 ter set  1 19:54:15 2026    03:44:59 tmux new-session -s claude command claude --continue || command claude
+1786492 ter set  1 19:54:15 2026    03:44:59 tmux new-session -s claude command claude --continue || command claude
+1786493 ter set  1 19:54:15 2026    03:44:59 bash -c command claude --continue || command claude
+1786494 ter set  1 19:54:15 2026    03:44:59 claude --continue
+--- transcripts mais recentes do projeto ~/server ---
+-rw------- 1 fxlip fxlip  491776 set  1 20:07 /home/fxlip/.claude/projects/-home-fxlip-server/84f2cc2c-295a-4add-a58a-e3f427c2b03f.jsonl
+-rw------- 1 fxlip fxlip  106812 set  1 19:54 /home/fxlip/.claude/projects/-home-fxlip-server/d8a5e3eb-aee0-4177-80f8-e2e152de1577.jsonl
+-rw------- 1 fxlip fxlip 1098224 set  1 19:33 /home/fxlip/.claude/projects/-home-fxlip-server/a3039365-5230-4889-9670-7b679710a035.jsonl
+-rw------- 1 fxlip fxlip 1395546 ago 19 20:01 /home/fxlip/.claude/projects/-home-fxlip-server/8702380e-0a04-4057-9a14-524e3bd12b4e.jsonl
+-rw------- 1 fxlip fxlip    9050 ago 10 23:09 /home/fxlip/.claude/projects/-home-fxlip-server/b08ca1a0-9c32-40ef-821f-7a07e57c972b.jsonl

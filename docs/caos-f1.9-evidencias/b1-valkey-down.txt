@@ -1,0 +1,10 @@
+--- B1.3 (2026-09-01T23:08:23-03:00) estado do outbox com broker fora ---
+pedido 10005 event_id=7147e015-9f1c-41de-9d0f-5d35a0dff1c4
+status durante a queda (esperado pending OU error — NÃO published): pending
+error_message: 
+--- B1.5 (2026-09-01T23:08:33-03:00) recuperação ---
+status final (esperado published): published
+processed_events (esperado 1): 1
+[Relay] Evento publicado no BullMQ: order.placed (7147e015-9f1c-41de-9d0f-5d35a0dff1c4)
+[Worker:orders] Recebido evento order.placed (job 7147e015-9f1c-41de-9d0f-5d35a0dff1c4, event_id 7147e015-9f1c-41de-9d0f-5d35a0dff1c4)
+[Worker:orders] Evento 7147e015-9f1c-41de-9d0f-5d35a0dff1c4 processado com sucesso (n8n HTTP 200).

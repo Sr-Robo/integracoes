@@ -1,0 +1,3 @@
+[replay] job failed original 407e3c5d-a58e-43aa-a65b-b0742bf5151a removido
+[replay] order.placed 407e3c5d-a58e-43aa-a65b-b0742bf5151a re-enfileirado em 'orders'
+[replay] concluído: 1 evento(s)

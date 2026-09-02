@@ -1,0 +1,27 @@
+--- investigação (2026-09-01T22:42:46-03:00) ---
+--- outbox COMPLETO (quem inseriu o quê e quando):
+1|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11|evershop|OR-1001|published||2026-09-01 22:39:46.246556+00|2026-09-01 22:39:46.640046+00
+2|dccdd506-f914-4362-bf2d-578c8fe2d323|evershop|10002|published||2026-09-01 23:41:22.219167+00|2026-09-01 23:41:23.156876+00
+3|8724a13b-6228-493f-8256-62d43abcdf9e|evershop|10003|published||2026-09-01 23:46:27.259372+00|2026-09-01 23:46:27.360374+00
+4|9fc4c5e6-6523-43fe-98d7-90502c979949|chaos-test|CAOS-0001|published||2026-09-02 01:15:23.776605+00|2026-09-02 01:15:24.650201+00
+5|c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99|evershop|CAOS-A-01|published||2026-09-02 01:15:42.067208+00|2026-09-02 01:15:42.663826+00
+6|b1a05102-9c0b-4ef8-bb6d-6bb9bd380a88|evershop|CAOS-B1-01|published||2026-09-02 01:16:54.882937+00|2026-09-02 01:17:07.643745+00
+7|0b4e4840-3aa9-44ad-b854-51632f7df916|chaos-test|CAOS-0002|published||2026-09-02 01:17:53.872491+00|2026-09-02 01:12:53.872491+00
+8|407e3c5d-a58e-43aa-a65b-b0742bf5151a|evershop|10004|published||2026-09-02 01:32:13.32626+00|2026-09-02 01:32:14.271554+00
+--- processed_events COMPLETO:
+a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11|order.placed|evershop|completed|2026-09-01 22:39:46.700572+00
+dccdd506-f914-4362-bf2d-578c8fe2d323|order.placed|evershop|completed|2026-09-01 23:41:23.206204+00
+8724a13b-6228-493f-8256-62d43abcdf9e|order.placed|evershop|completed|2026-09-01 23:46:27.390618+00
+c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99|order.placed|evershop|completed|2026-09-02 01:16:34.497342+00
+b1a05102-9c0b-4ef8-bb6d-6bb9bd380a88|order.placed|evershop|completed|2026-09-02 01:17:07.734252+00
+0b4e4840-3aa9-44ad-b854-51632f7df916|order.placed|chaos-test|completed|2026-09-02 01:18:14.335628+00
+--- o fantasma tem linha no outbox?
+5|evershop|published|2026-09-02 01:15:42.067208+00
+--- DLQ orders (LIST — jobs esperados: 9fc4c5e6 do 0b, c1a05101 fantasma, 407e3c5d-a58e-43aa-a65b-b0742bf5151a do 10004):
+2
+1
+--- orders:failed (esperado: só 407e3c5d-a58e-43aa-a65b-b0742bf5151a):
+407e3c5d-a58e-43aa-a65b-b0742bf5151a
+--- orders:completed (histórico):
+9fc4c5e6-6523-43fe-98d7-90502c979949
+0b4e4840-3aa9-44ad-b854-51632f7df916

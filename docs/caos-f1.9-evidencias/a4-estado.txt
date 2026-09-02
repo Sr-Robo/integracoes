@@ -1,0 +1,7 @@
+--- A4 (2026-09-01T22:33:48-03:00) event_id=407e3c5d-a58e-43aa-a65b-b0742bf5151a pedido=10004 ---
+orders:failed (esperado 1): 1
+/home/fxlip/.claude/jobs/7d3c9ef2/tmp/caos-0bcomp-cenarioA.sh: linha 77: WRONGTYPE: variável não associada
+--- A4 (2026-09-01T22:42:47-03:00) event_id=407e3c5d-a58e-43aa-a65b-b0742bf5151a ---
+orders:failed (esperado 1): 1
+orders-dlq jobs (esperado 3: 0b + fantasma + 10004): 2
+processed_events do 10004 (esperado 0): 0

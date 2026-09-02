@@ -1,0 +1,1 @@
+[Worker:orders] Evento 8724a13b-6228-493f-8256-62d43abcdf9e já processado anteriormente. Ignorando silenciosamente (ACK).

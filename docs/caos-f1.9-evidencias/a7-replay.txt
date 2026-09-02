@@ -1,0 +1,5 @@
+[replay] job failed original c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99 removido
+[replay] order.placed c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99 re-enfileirado em 'orders'
+[replay] 9fc4c5e6-6523-43fe-98d7-90502c979949: job original em estado 'completed' — pulando
+[replay] concluído: 1 evento(s)
+[Worker:orders] Evento c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99 processado com sucesso (n8n HTTP 200).

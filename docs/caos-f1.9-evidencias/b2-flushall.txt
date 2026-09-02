@@ -1,0 +1,8 @@
+--- B2.3 (2026-09-01T23:09:24-03:00) pós-flush ---
+pedido 10006 event_id=b5b49e1b-dd2d-495a-ba5d-a23069665583
+status: published
+processed_events total antes/depois (esperado +1 exato — sem re-disparo de antigos): 8 → 9
+bull:orders:completed (esperado 1 — só o evento novo): 2
+[Worker:orders] Recebido evento order.placed (job b5b49e1b-dd2d-495a-ba5d-a23069665583, event_id b5b49e1b-dd2d-495a-ba5d-a23069665583)
+[Relay] Evento publicado no BullMQ: order.placed (b5b49e1b-dd2d-495a-ba5d-a23069665583)
+[Worker:orders] Evento b5b49e1b-dd2d-495a-ba5d-a23069665583 processado com sucesso (n8n HTTP 200).

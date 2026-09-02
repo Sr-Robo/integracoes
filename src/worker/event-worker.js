@@ -83,6 +83,16 @@ function createWorkerForQueue(queueName) {
           `Evento ${canonicalEvent.event_type} (${canonicalEvent.event_id}) rejeitado por violação de schema: ${validation.error}`,
           ['x', 'warning']
         );
+        // Registra a decisão TERMINAL na idempotência: sem isso o evento
+        // rejeitado nunca entra em processed_events e o reconciliador o
+        // re-publica a cada ciclo para sempre (loop achado no caos F1.9 —
+        // e re-entrega de verdade após qualquer FLUSHALL do Valkey).
+        await centralPool.query(
+          `INSERT INTO processed_events (event_id, event_type, producer, status, processed_at)
+           VALUES ($1, $2, $3, 'rejected', NOW())
+           ON CONFLICT (event_id) DO NOTHING`,
+          [canonicalEvent.event_id, canonicalEvent.event_type, canonicalEvent.producer]
+        );
         return { status: 'rejected_schema', error: validation.error };
       }
 

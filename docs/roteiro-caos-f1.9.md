@@ -1,3 +1,9 @@
+> ⚠️ **COORDENAÇÃO OBRIGATÓRIA**: este roteiro derruba serviços de
+> produção (n8n, Valkey). Executar SOMENTE em janela acordada com o fxlip
+> na sessão — NÃO é tarefa pendente de agente autônomo. (2026-09-01: uma
+> sessão em background o executou sozinha 15 min antes da execução oficial
+> e quase colidiu.)
+
 # Roteiro de Caos — F1.9 (espinha dorsal da plataforma)
 
 Data: 2026-09-01 (noite) · Executor: fxlip + assistente
@@ -65,7 +71,7 @@ docker exec postgres psql -U integracoes -d integracoes -tAc \
 docker logs integracoes --since 2m 2>&1 | grep -iE "contrato|schema|DLQ" | tee ~/server/repos/integracoes/docs/caos-f1.9-evidencias/0b-schema.txt
 ```
 
-**PASS:** `orders-dlq` = 1 job novo · log `ERRO DE CONTRATO` + `rejected_schema` · **celular recebe "Erro de Contrato de Evento" no `plataforma-events`** · `processed_events` **não** ganha linha do chaos-test (payload sem efeito).
+**PASS:** `orders-dlq` = 1 job novo · log `ERRO DE CONTRATO` + `rejected_schema` · **celular recebe "Erro de Contrato de Evento" no `plataforma-events`** · `processed_events` ganha linha com status **rejected** (decisão terminal; sem webhook, sem efeito — fix pós-caos 2026-09-01).
 **FAIL típico:** ntfy não chega → `NTFY_TOKEN` ausente/inválido (roda de novo a validação do setup).
 
 ---

@@ -1,0 +1,6 @@
+INSERT 0 1
+linha 'rejected' inserida (o código novo grava sozinho daqui pra frente).
+--- verificação (2026-09-01T23:40:48-03:00) ---
+logs [Relay:reconcile] do 9fc4c5e6-6523-43fe-98d7-90502c979949 desde o rebuild (esperado 0): 0
+linha terminal: rejected
+removidas: 1

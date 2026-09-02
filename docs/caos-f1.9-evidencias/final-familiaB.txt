@@ -1,0 +1,11 @@
+--- final (2026-09-01T23:09:24-03:00) ---
+integracoes  Up About an hour (healthy)
+postgres  Up 4 hours (healthy)
+valkey  Up About a minute (healthy)
+n8n  Up 26 minutes
+paperless_postgres  Up 12 days (healthy)
+immich_postgres  Up 12 days (healthy)
+outbox por status (esperado: tudo published):
+published|10
+DLQ orders (esperado 1 — registro de estudo do 0b): 1
+orders pendentes (esperado 0): wait=0 delayed=0 failed=0

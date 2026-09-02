@@ -1,0 +1,18 @@
+[Worker:orders] Job c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99 falhou na tentativa 1/5: getaddrinfo ENOTFOUND n8n
+[Worker:orders] Job c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99 falhou na tentativa 2/5: getaddrinfo ENOTFOUND n8n
+[Worker:orders] Job c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99 falhou na tentativa 3/5: getaddrinfo ENOTFOUND n8n
+[Worker:orders] Job c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99 falhou na tentativa 4/5: getaddrinfo ENOTFOUND n8n
+[Worker:orders] Job c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99 falhou na tentativa 5/5: getaddrinfo ENOTFOUND n8n
+[Worker:orders] Job c1a05101-9c0b-4ef8-bb6d-6bb9bd380a99 esgotou todas as tentativas! Movendo para DLQ...
+[Worker:orders] Recebido evento order.placed (job 407e3c5d-a58e-43aa-a65b-b0742bf5151a, event_id 407e3c5d-a58e-43aa-a65b-b0742bf5151a)
+[Relay] Evento publicado no BullMQ: order.placed (407e3c5d-a58e-43aa-a65b-b0742bf5151a)
+[Worker:orders] Job 407e3c5d-a58e-43aa-a65b-b0742bf5151a falhou na tentativa 1/5: getaddrinfo ENOTFOUND n8n
+[Worker:orders] Recebido evento order.placed (job 407e3c5d-a58e-43aa-a65b-b0742bf5151a, event_id 407e3c5d-a58e-43aa-a65b-b0742bf5151a)
+[Worker:orders] Job 407e3c5d-a58e-43aa-a65b-b0742bf5151a falhou na tentativa 2/5: getaddrinfo ENOTFOUND n8n
+[Worker:orders] Recebido evento order.placed (job 407e3c5d-a58e-43aa-a65b-b0742bf5151a, event_id 407e3c5d-a58e-43aa-a65b-b0742bf5151a)
+[Worker:orders] Job 407e3c5d-a58e-43aa-a65b-b0742bf5151a falhou na tentativa 3/5: getaddrinfo ENOTFOUND n8n
+[Worker:orders] Recebido evento order.placed (job 407e3c5d-a58e-43aa-a65b-b0742bf5151a, event_id 407e3c5d-a58e-43aa-a65b-b0742bf5151a)
+[Worker:orders] Job 407e3c5d-a58e-43aa-a65b-b0742bf5151a falhou na tentativa 4/5: getaddrinfo ENOTFOUND n8n
+[Worker:orders] Recebido evento order.placed (job 407e3c5d-a58e-43aa-a65b-b0742bf5151a, event_id 407e3c5d-a58e-43aa-a65b-b0742bf5151a)
+[Worker:orders] Job 407e3c5d-a58e-43aa-a65b-b0742bf5151a falhou na tentativa 5/5: getaddrinfo ENOTFOUND n8n
+[Worker:orders] Job 407e3c5d-a58e-43aa-a65b-b0742bf5151a esgotou todas as tentativas! Movendo para DLQ...
