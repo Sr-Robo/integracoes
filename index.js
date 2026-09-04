@@ -1,10 +1,12 @@
 const http = require('http');
+const axios = require('axios');
 const { startRelay } = require('./src/relay/outbox-relay');
 const { startWorkers } = require('./src/worker/event-worker');
 const { initFallbackDb } = require('./src/shipping/fallback-db');
 const { QuoteGateway } = require('./src/shipping/quote-gateway');
 
 const SHIPPING_API_TOKEN = process.env.SHIPPING_API_TOKEN || '';
+const BOUNCE_WEBHOOK_SECRET = process.env.BOUNCE_WEBHOOK_SECRET || '';
 let quoteGateway = null;
 
 function parseJsonBody(req) {
@@ -103,6 +105,57 @@ async function handleRequest(req, res) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({ error: 'Failed to generate label', message: err.message }));
     }
+  }
+
+  // 4. Webhook de bounce do forwardemail (POST /bounce/<segredo>) — B3
+  // O forwardemail não assina nem autentica o POST: o segredo mora no path
+  // (mesma técnica do deploy.robo.net.br). Publicado só via Traefik com rule
+  // de path exato em hooks.robo.net.br — ver stacks/integracoes/docker-compose.
+  if (method === 'POST' && url.startsWith('/bounce/')) {
+    const secret = decodeURIComponent(url.slice('/bounce/'.length).split('?')[0]);
+    if (!BOUNCE_WEBHOOK_SECRET || secret !== BOUNCE_WEBHOOK_SECRET) {
+      // Segredo errado responde igual a rota inexistente — não confirma existência
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ error: 'Not Found' }));
+    }
+
+    let note = 'payload não-JSON (ignorado)';
+    try {
+      const data = await parseJsonBody(req);
+      const to = data.to || data.recipient || data.email || 'destinatário desconhecido';
+      const reason = data.error || data.message || data.response || data.reason || JSON.stringify(data);
+      const type = data.type ? ` (${data.type})` : '';
+      note = `Para: ${to} — motivo: ${String(reason).slice(0, 400)}`;
+    } catch (err) {
+      // Body inválido: loga e segue — bounce não tem replay útil no lado deles
+      console.error('[HTTP:bounce] payload não-JSON:', err.message);
+    }
+
+    // 200 sempre (efeito notificado em melhor esforço, erro não gera retry deles)
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ received: true }));
+
+    setImmediate(async () => {
+      try {
+        // Mesmos env/convenção do sendNtfyAlert do worker: headers X-, UA
+        // custom (Cloudflare barra UA de lib em *.robo.net.br), token Bearer.
+        const ntfyUrl = process.env.NTFY_URL || 'https://ntfy.robo.net.br/plataforma-events';
+        const headers = {
+          'X-Title': 'E-mail quicou — plataforma',
+          'X-Priority': 'high',
+          'X-Tags': 'email,bounce',
+          'User-Agent': 'sr-robo-integracoes/1.0'
+        };
+        if (process.env.NTFY_TOKEN) {
+          headers['Authorization'] = `Bearer ${process.env.NTFY_TOKEN}`;
+        }
+        await axios.post(ntfyUrl, `E-mail de saída quicou no relay.\n${note}`, { headers, timeout: 10000 });
+        console.log('[HTTP:bounce] alerta ntfy enviado');
+      } catch (err) {
+        console.error('[HTTP:bounce] falha ao notificar ntfy:', err.message);
+      }
+    });
+    return;
   }
 
   // 404
