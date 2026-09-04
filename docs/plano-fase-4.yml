@@ -1,0 +1,345 @@
+# ============================================================================
+# PLANO DE RODADA — FASE 4: Fiscal (NF-e/NFC-e) + WMS (picking/packing)
+# ============================================================================
+# Fonte: docs/ecommerce-plataforma.md §9 (roadmap) — fase 4, "gate de venda real".
+# Escopo: ACBrLib + cert A1 + homologação SEFAZ + picking/packing no ERPNext.
+# Como usar: este arquivo é autocontido. Trabalhe por braço (W = WMS,
+#         F = fiscal), na ordem de `ordem_sugerida`. O braço W está
+#         DESBLOQUEADO; o braço F depende dos gates G1–G3 (`gates_externos`)
+#         — dispare os três HOJE, têm lead time de dias/semanas.
+# CHECKPOINTS: há 3 paradas obrigatórias (`checkpoints`). Em cada uma, SALVE
+#         as evidências em repos/integracoes/docs/ (molde: evidencia-f3-*.md)
+#         e chame a sessão Opus ANTES de continuar. A seção `conferencia`
+#         é o que vai ser cobrado em cada uma.
+# NÃO altere este arquivo durante a execução sem anotar o desvio no commit.
+
+meta:
+  fase: "4 — Fiscal + WMS (gate de venda real)"
+  criado_em: "2026-09-04"
+  autor: "Sessão Opus (orquestrador), a pedido do fxlip"
+  doc_mestre: "~/server/docs/ecommerce-plataforma.md"
+  pre_requisito_de_fase: "Fase 3 concluída (frete + e-mail + CPF/CNPJ no checkout desde 2026-09-04)"
+  aviso_coordenacao: >-
+    Este roteiro é para execução MANUAL pelo fxlip (com a sessão Opus
+    conferindo nos checkpoints). Se outra sessão/autômato for executá-lo,
+    combinar janela ANTES — roteiro executado sem coordenação já mordeu uma
+    vez (memória da frente plataforma). O único caos aqui é controlado
+    (V1: replay de evento já processado), fora de janela não faz nada
+    destrutivo, mas mantém a regra.
+
+estado_de_partida:
+  barramento: "outbox → relay → BullMQ/Valkey → worker (valida + idempotência em processed_events) → webhook n8n; DLQ + ntfy (tópico plataforma-events); replay manual (scripts/replay-dlq.js)"
+  fase2: "ERPNext v16.34.1 + MariaDB no ar; catálogo 1:1 (24 itens); estoque bidirecional (Webhook Bin on_update → n8n → EverShop); order.placed → Sales Order idempotente; Customer com tax_id (fase 3)"
+  fase3: "order.paid → n8n → etiqueta pré-postagem CWS (worker :9999 /shipping/label) anexada ao Sales Order; e-mail transacional via forwardemail (credential SMTP no n8n); cotação cache→API→fallback"
+  schemas: "order.placed v1 carrega customer.tax_id + shipping_address + items + totals; order.paid v1 carrega SÓ payment + paid_at (sem itens — de propósito, ver desenho W2/F3)"
+  erpnext_api: "n8n fala com o ERPNext pela REST API (mesmo padrão da fase 2; header Host: erp.robo.net.br importa — gotcha do healthcheck, CLAUDE.md da stack)"
+  nota_posse: "§4 do doc mestre — Item/estoque/fiscal de produto moram no ERPNext; nota fiscal/XML/DANFE é do módulo fiscal (ACBr) e anexa na fatura do ERPNext (chave nfe_chave + order_number)"
+
+# ============================================================================
+# GATES EXTERNOS (só o fxlip consegue; lead time — DISPARAR HOJE, em paralelo)
+# Estado atual (decisão do fxlip 2026-09-04): NENHUM resolvido.
+# ============================================================================
+gates_externos:
+  - id: G1
+    o_que: "Certificado digital A1 e-CNPJ da empresa (arquivo .pfx + senha forte)"
+    passos:
+      - "Emitir em qualquer AC ICP-Brasil (Serasa/Certisign/Soluti etc.) — e-CNPJ, titularidade da empresa da loja"
+      - "Guardar o .pfx FORA dos repos; a senha também — só entram como bind-mount read-only e .env 600 na stack fiscal (F1)"
+      - "Validade é de 1 ano: anotar a data de vencimento (o alerta de 30 dias é requisito F1)"
+    entrega: "arquivo .pfx + senha + data de vencimento anotada"
+    libera: "F1 (com cert real), F3, F4"
+
+  - id: G2
+    o_que: "Contador: decisões tributárias (NÃO é decisão de infra — §13 do doc mestre)"
+    passos:
+      - "Regime tributário (Simples Nacional × Regime Normal) — muda CSOSN×CST, DIFAL/partilha"
+      - "Modelo de nota pra venda ao consumidor final (NFC-e) × interestadual (NF-e) — começar por qual"
+      - "Dados fiscais por produto: NCM (obrigatório), CEST (se aplicável), origem da mercadoria, CFOP padrão de venda"
+      - "Natureza da operação padrão (ex.: 'Venda de mercadoria adquirida')"
+    entrega: "papel com as decisões acima → insumo do F2"
+    libera: "F2, F3, F4"
+
+  - id: G3
+    o_que: "Credenciamento na SEFAZ + CSC de homologação"
+    passos:
+      - "Credenciar o CNPJ como emissor de NF-e/NFC-e no portal da SEFAZ do estado"
+      - "No ambiente de HOMOLOGAÇÃO: gerar o CSC (Código de Segurança do Contribuinte / idToken) — obrigatório pro QR code da NFC-e"
+      - "Anotar a URL do webservice de homologação do estado (ou definir SVAN/SVRS)"
+      - "Confirmar que o CNPJ+UF constam no cadastro de emissores ANTES de tentar emissão"
+    entrega: "CSC + idToken + URL webservice homologação"
+    libera: "F3, F4"
+
+# ============================================================================
+# ORDEM SUGERIDA
+# ============================================================================
+ordem_sugerida:
+  - "G1+G2+G3 em paralelo NO DIA 1 (lead time externo não depende de código)"
+  - "W1→W2→W3→W4 (WMS: totalmente desbloqueado) → CHECKPOINT 1"
+  - "F0 (spike ACBrLib) pode correr em paralelo com W — é só técnico, usa cert de TESTE, não precisa de G1"
+  - "F1 pode SUBIR com cert de TESTE antes do G1; cert REAL e emissão só com G1"
+  - "F2 quando G2 chegar; F3/F4 quando G1+G2+G3 fecharem → CHECKPOINT 2 (antes da 1ª emissão) → F4 → CHECKPOINT 3"
+  - "V (verificação + registro) — por último, com tudo no ar"
+
+# ============================================================================
+# BRAÇO W — WMS: PICKING/PACKING + FATURAMENTO (desbloqueado)
+# ============================================================================
+workstream_w_wms:
+  desenho:
+    - "A baixa REAL de estoque nasce no ERPNext via Delivery Note (§4: 'a baixa real nasce no ERPNext (delivery note)'). NUNCA setar update_stock na Sales Invoice — Invoice fatura, DN baixa."
+    - "order.paid é gatilho, não fonte de dado: o payload não carrega itens. Quem fatura lê o Sales Order (fase 2) no ERPNext. Um só escritor por domínio (princípio 1)."
+    - "Pick List é o documento de separação com código de barras (critério literal da fase). Leitor USB de código de barras emula teclado — funciona no campo de item da Pick List sem instalar nada."
+    - "Regra de ouro da loja: a loja continua só RESERVANDO (qty agregada via stock.changed da fase 2); nada aqui muda a posse de dados."
+
+  passos:
+    - id: W1
+      titulo: "Depósitos + código de barras nos 24 Items"
+      territorio: "plataforma (ERPNext, erp.robo.net.br)"
+      fazer:
+        - "Revisar Warehouses (Inventory → Warehouse): garantir 1 depósito físico real de picking (ex.: renomear 'Stores - SR' pra algo significativo). Multi-depósito fica pra quando existir de verdade."
+        - "Preencher código de barras em cada Item: EAN/GTIN quando o produto tiver; senão gerar código interno e imprimir etiqueta (qualquer gerador Code128) — o que vale é o scanner resolver o item"
+        - "Se for volume: estender scripts/migrate-catalog-to-erp.js como modelo de update em lote (repo integracoes), ou planilha import do ERPNext (Data Import)"
+        - "Registrar numeração inicial da NFC-e/número de nota NÃO mora aqui — é papel do fiscal (F2)"
+      criterio: "GET /api/resource/Item?filters=[['disabled','=',0]] devolve 24 itens com barcode preenchido"
+
+    - id: W2
+      titulo: "order.paid → Sales Invoice idempotente (n8n)"
+      territorio: "plataforma (n8n, tag/pasta plataforma)"
+      fazer:
+        - "Estender o workflow que hoje trata order.paid (etiqueta, fase 3): depois da etiqueta, criar Sales Invoice a partir do Sales Order"
+        - "Caminho Frappe: POST /api/method/erpnext.selling.doctype.sales_order.sales_order.make_sales_invoice com {source_name: <SO>} → devolve doc → POST /api/resource/Sales Invoice com o doc (update_stock=0 SEMPRE)"
+        - "IDEMPOTÊNCIA DE EFEITO (mesma guarda que a etiqueta usa hoje): antes de criar, checar no SO se per_billed > 0 (ou já existe Invoice ligada). Replay de order.paid NÃO pode faturar 2×"
+        - "Cronologia correta: faturar só quando o SO existir (order.placed processado) — se chegar order.paid sem SO, falhar o job (retry → DLQ → ntfy), não criar Invoice solta"
+        - "Exportar workflow pro repos/integracoes/workflows/ (fonte de verdade)"
+      criterio: "pedido de teste pago gera Sales Invoice; replay do mesmo evento não gera segunda Invoice"
+
+    - id: W3
+      titulo: "Pick List → scan → Delivery Note (baixa de estoque)"
+      territorio: "plataforma (ERPNext)"
+      fazer:
+        - "Gerar Pick List a partir do Sales Order (botão 'Create Pick List' na UI, ou POST /api/resource/Pick List com referência ao SO)"
+        - "Separar escaneando o código de barras do item (leitor USB no campo de item) — validar no físico: escanear resolve o item e confere qty"
+        - "Da Pick List concluída: criar/submit Delivery Note (botão na Pick List gera DN com update_stock=1 — é AQUI que o estoque baixa de verdade)"
+        - "Conferir que o stock.changed resultante (Webhook Bin on_update da fase 2) propaga a baixa pra loja — o ciclo fechado: DN baixa no ERP → evento → loja atualiza qty"
+        - "Packing list/embalagem: opcional, só se quiser rastreio interno; não é critério da fase"
+      criterio: "picking de pedido de teste feito por código de barras; DN submetida baixa estoque e a baixa aparece na loja"
+
+    - id: W4
+      titulo: "Delivery Note → order.shipped de volta ao barramento"
+      territorio: "plataforma (n8n + extensão order_events no repos/www — COMBINAR com a frente back antes)"
+      fazer:
+        - "Webhook Frappe de Delivery Note on_submit → n8n (mesmo modelo do Webhook Bin da fase 2; lembrar do cache client_cache.delete_value('webhooks') ao editar — gotcha do CLAUDE.md erpnext)"
+        - "n8n atualiza o pedido na loja via API do EverShop (shipment status → shipped + tracking_code da etiqueta da fase 3)"
+        - "VERIFICAR se a extensão order_events já publica order.shipped a partir do status de envio do pedido; se não publicar, estender (rito dos 3 lugares + commit+push — deploy reseta working tree)"
+        - "order.shipped v1 já tem tracking_code no schema — nada de bump de versão"
+        - "Consumidores: e-mail de rastreio (estender o workflow de e-mail da fase 3), analytics (fase 6, futuro)"
+      criterio: "DN submetida → pedido da loja consta shipped com tracking → e-mail com rastreio sai → evento order.shipped no barramento"
+
+  armadilhas_w:
+    - "Sales Invoice com update_stock=1 burla o desenho (baixa sem DN/picking) — NUNCA setar"
+    - "Pick List não é obrigatória pro DN (dá pra entregar direto) — o critério da fase é o picking COM código de barras; não pular 'pra adiantar'"
+    - "Webhook Frappe novo exige enabled=1 + Content-Type: application/json + invalidar cache de webhooks"
+    - "Edição em repos/www só vale commitada E pushada (deploy reseta working tree)"
+
+# ============================================================================
+# BRAÇO F — FISCAL: ACBrLib + HOMOLOGAÇÃO (atrás dos gates G1–G3)
+# ============================================================================
+workstream_f_fiscal:
+  desenho:
+    - "ACBrLib vira MICROSSERVIÇO HTTP interno: container próprio na stack fiscal/ (rede integracoes, porta interna, SEM publicação no host — mesmo perímetro do worker). A .so é Pascal/C-ABI: wrapper Python (ctypes) pequeno em vez de FFI no Node do worker."
+    - "A nota lê o Sales Invoice do ERPNext (itens, qty, preço, destinatário com tax_id, endereço) — dados fiscais de produto (NCM/CFOP/origem) moram no Item (F2). O evento order.paid só DISPARA (payload não carrega itens)."
+    - "ACBrLib Linux (OpenSSL + xmlsec) aceita SÓ certificado A1 em .pfx — é o formato do G1 (fonte: fórum Projeto ACBr, seção fontes)."
+    - "Ambientes: homologação por padrão (NFE_AMBIENTE=homologacao); trocar pra produção é decisão registrada, nunca env trocado por acidente (o .env é 600 e a mudança vira commit)."
+    - "Rejeição SEFAZ é estado de NEGÓCIO, não erro de infra: alerta ntfy + correção manual + reemissáo por replay — sem retry automático cego (evita loop de lote rejeitado)."
+
+  passos:
+    - id: F0
+      titulo: "Spike ACBrLib em container (SEM gate — pode fazer já)"
+      territorio: "plataforma (stacks/fiscal + código wrapper)"
+      fazer:
+        - "Baixar as libs ACBrLib Linux64 da página de releases do Projeto ACBr (GitHub) — pinar versão exata no Dockerfile"
+        - "Debian slim + dependências: libssl3, libxml2, xmlsec1 (+libs) — conferir `ldd` da .so no build, sem erro é critério"
+        - "Wrapper mínimo (Python + ctypes): carregar a .so, NFE_Inicializar, carregar config .ini"
+        - "Cert de TESTE (openssl self-signed em .pfx) só pra validar a toolchain de assinatura — assinar um XML de teste e conferir com `xmlsec1 --verify`"
+        - "Critério de ESCALADA: se em ~1 dia de esforço a .so não estiver carregando/assinando, PARAR e registrar decisão no doc mestre (§1 muda 'stack fiscal' pra API de serviço externo) — não insistir no silêncio"
+      criterio: "container sobe, .so carrega, XML de teste assinado e verificado"
+
+    - id: F1
+      titulo: "Stack fiscal/ de produção (cert real = G1; pode subir com cert de teste antes)"
+      territorio: "plataforma (stacks/fiscal, ~/server)"
+      fazer:
+        - "stacks/fiscal/docker-compose.yml: serviço fiscal (build local, Dockerfile no repo integracoes), rede integracoes (external), porta INTERNA (ex.: 9998) — sem ports: no host"
+        - "mem_limit: 768M (orçamento §8 diz ~0.5G pro fiscal — folga pro DANFE/QrCode)"
+        - "Bind /mnt/storage/volumes/fiscal/ (backup diário já cobre a árvore — princípio 7) pra config, ACBrLib.ini e logs"
+        - "Cert A1: .pfx montado READ-ONLY (ro) + senha via FISCAL_CERT_SENHA no .env 600 (chave 600, dono correto)"
+        - "ACBrLib.ini com ambiente de homologação (UF, webservice homologação do G3, CSC do G3, dados da empresa do G2)"
+        - "Endpoints do wrapper: GET /health, GET /cert/expiry, POST /nfe/emit (in: Sales Invoice data → out: status/chave/xml/danfe_pdf)"
+        - "Alerta de vencimento do A1 (§13): workflow n8n diário chama /cert/expiry → se <30 dias, ntfy plataforma-events (prioridade alta). Anotar como pendência de monitor externo se quiser alerta mesmo com n8n caído"
+        - "Imagem base de registry: pinada por digest + entrada em stacks/diun/config/images.yml + BASELINE EM SILÊNCIO antes de religar o Diun (gotcha docs/diun.md)"
+        - "CLAUDE.md da stack fiscal com os gotchas que aparecerem"
+      criterio: "docker compose ps saudável; /health e /cert/expiry respondem; cert real carrega (com G1); zero porta no host"
+
+    - id: F2
+      titulo: "Dados fiscais nos Items + regime (G2)"
+      territorio: "plataforma (ERPNext) + fxlip (decisões do contador)"
+      fazer:
+        - "Custom Fields no Item do ERPNext via API (POST /api/resource/Custom Field): ncm (obrigatório emissão), cest, cfop_padrao, origem, ean/gtin (se não preenchido em W1)"
+        - "SEM app de localização Brasil por enquanto (peso/risco desnecessário — a emissão é do ACBr, o ERPNext só guarda). Revisar se um dia precisar de SPED"
+        - "Custom Field nfe_chave no Sales Invoice (vai receber a chave da nota em F3)"
+        - "Preencher NCM/CFOP/origem dos 24 itens com o papel do contador (G2)"
+        - "Config fiscal da empresa no ACBrLib.ini (CNPJ, IE, IM, regime Simples/Normal, alíquotas) — do G2"
+      criterio: "todos os 24 itens com NCM preenchido; regime configurado; Sales Invoice tem campo nfe_chave"
+
+    - id: F3
+      titulo: "Workflow de emissão (G1+G2+G3) — roda APÓS W2"
+      territorio: "plataforma (n8n + serviço fiscal)"
+      fazer:
+        - "Workflow plataforma 'nfe-emissao': no fluxo de order.paid, APÓS o faturamento (W2) e a etiqueta (fase 3)"
+        - "n8n lê o Sales Invoice no ERPNext → monta chamada POST /nfe/emit do serviço fiscal (itens com NCM/CFOP, destinatário com tax_id + endereço, totais, natureza da operação)"
+        - "IDEMPOTÊNCIA DE EFEITO: se o Sales Invoice já tem nfe_chave, NÃO emite de novo (replay de order.paid não reemite)"
+        - "Resposta autorizada: anexar XML + DANFE (PDF) no Sales Invoice (mesmo padrão de anexo da etiqueta fase 3) + gravar nfe_chave"
+        - "Resposta rejeitada/denegada: ntfy alerta + NÃO retry automático (correção manual → reemissão)"
+        - "QR code da NFC-e precisa do CSC (G3) — sem ele, só NF-e"
+        - "Exportar workflow pro repos/integracoes/workflows/"
+      criterio: "order.paid de teste → NFC-e/NF-e emitida em HOMOLOGAÇÃO → XML+DANFE anexados no Sales Invoice com nfe_chave"
+
+    - id: F4
+      titulo: "Homologação validada de ponta a ponta"
+      territorio: "plataforma + fxlip"
+      fazer:
+        - "Emitir nota de teste com produto REAL e valor REAL de um pedido de teste (SEFAZ homologação aceita; validar o protocolo de autorização — status 100 'Autorizada')"
+        - "Conferir NTP verde (timedatectl — relógio errado rejeita nota, §13)"
+        - "Ler o DANFE: dados do destinatário (CPF do teste), NCM nos itens, chave de acesso com dígito verificador válido"
+        - "Confirmar o GATE: nenhuma venda real até a decisão formal de migrar pra produção (critério literal da fase)"
+      criterio: "nota de homologação AUTORIZADA com protocolo; DANFE íntegro; gate de venda real reafirmado por escrito"
+
+  armadilhas_f:
+    - "ACBrLib Linux só aceita A1/PFX — A3 (token/smartcard) NÃO funciona nessa variante"
+    - "Senha do .pfx e CSC nunca em repo, workflow exportado ou log (o XML da nota em homologação pode conter dados — mas senha nunca)"
+    - "Trocar homologação↔produção é decisão REGISTRADA — nunca um .env editado às pressas"
+    - "Sefaz homologação às vezes instável/limitada (chamadas de dia) — rejeição por ambiente não é bug nosso: conferir status do webservice antes de debugar código"
+    - "CPF do destinatário obrigatório em NFC-e — já capturado desde a fase 3 (tax_id no Customer); se o pedido de teste não tiver, o checkout de teste que está errado"
+    - "Renovação anual do A1: o alerta de 30 dias (F1) é requisito, não enfeite — cert vencido paralisa emissão"
+
+# ============================================================================
+# CHECKPOINTS (paradas obrigatórias — salvar evidências e chamar a sessão Opus)
+# ============================================================================
+checkpoints:
+  - id: CP1
+    ponto: "Fim do braço W (W1–W4), ANTES de tocar em qualquer coisa do fiscal"
+    evidencias:
+      - "Comando do critério W1 (itens com barcode) + print/JSON da Pick List com scan validado"
+      - "Sales Invoice criada + prova de replay sem duplicar (mesmo comando do V1 aplicado a order.paid)"
+      - "DN submetida → baixa no ERP → qty na loja (stock.changed) — as 3 telas/consultas"
+    conferir: "seção conferencia.wms deste arquivo"
+  - id: CP2
+    ponto: "Stack fiscal de pé (F0+F1) ANTES da primeira emissão (F3/F4)"
+    evidencias:
+      - "docker ps da stack fiscal + /health + /cert/expiry (com cert real do G1)"
+      - "Compose (sem ports no host, mem_limit, bind no /mnt/storage) + .env com chmod 600"
+      - "timedatectl (NTP verde)"
+    conferir: "seção conferencia.fiscal_stack"
+  - id: CP3
+    ponto: "F4 concluído — ANTES de declarar a fase pronta"
+    evidencias:
+      - "XML/chave/protocolo da nota de homologação autorizada + DANFE"
+      - "nfe_chave gravada no Sales Invoice + anexos (XML+PDF)"
+      - "Caos V1 e ponta-a-ponta V2 executados com evidências salvas"
+      - "Registro V3 feito (docs mestre, README inventário, CLAUDE.md, commits, export n8n)"
+    conferir: "seção conferencia completa"
+
+# ============================================================================
+# VERIFICAÇÃO FINAL (caos + ponta-a-ponta + registro)
+# ============================================================================
+workstream_v_verificacao:
+  - id: V1
+    titulo: "Caos controlado: replay não duplica"
+    fazer:
+      - "docker exec integracoes node scripts/replay-dlq.js orders <event_id> de um order.paid já processado"
+      - "Conferir: NÃO gera segunda Sales Invoice, NÃO reemite nota, NÃO reemite etiqueta, NÃO reenvia e-mail"
+  - id: V2
+    titulo: "Ponta-a-ponta do dinheiro"
+    fazer:
+      - "Pedido de teste com CPF válido → pago → Sales Order → Sales Invoice → NFC-e homologação → etiqueta → Pick List com scan → DN → order.shipped → e-mail com rastreio"
+      - "Cronometrar: nada do caminho do cliente dependeu do backoffice estar rápido (princípio 3)"
+  - id: V3
+    titulo: "Registro (mesma rodada, não deixar pro depois)"
+    fazer:
+      - "docs/ecommerce-plataforma.md: §9 marca Fase 4 concluída + nota de implantação (modelo das notas F1/F2/F3)"
+      - "Inventário de segredos do README.md do ~/server: cert A1 (onde mora: bind ro), senha A1 (.env fiscal), CSC (idem), NO MESMO COMMIT (princípio 7)"
+      - "CLAUDE.md das stacks tocadas (fiscal/, erpnext/) com gotchas novos"
+      - "Commits: repos/integracoes (código wrapper + workflows exportados) e ~/server (stacks + docs) — www só se mexeu em order_events (W4), PUSHADO"
+      - "server frente marco plataforma fechou 'fase 4' (e server frente log se houver desvio deste plano)"
+      - "Reavaliar decisão 1 do §12 (split do n8n pra fiscal): com o volume atual a conclusão esperada é MANTER único — registrar a reavaliação em qualquer caso"
+
+# ============================================================================
+# SEGREDOS E INVENTÁRIO
+# ============================================================================
+segredos:
+  - "stacks/fiscal/.env (600, nunca versionado): FISCAL_CERT_SENHA, FISCAL_CSC, FISCAL_CSC_ID, NFE_AMBIENTE=homologacao, FISCAL_API_TOKEN"
+  - "Cert A1 .pfx: bind-mount read-only, arquivo fora de repos, permissão restrita — inventariar ONDE mora, não o conteúdo"
+  - "Nenhuma credencial/segredo em repo, workflow exportado, ACBrLib.ini versionado ou log (ACBrLib.ini com caminhos/UF ok; senha via ini NÃO versionado — fica no bind do volume)"
+  - "Inventário do README.md atualizado NO MESMO COMMIT que sobe a stack (princípio 7)"
+
+# ============================================================================
+# CRITÉRIOS DE PRONTO (§9 literal do doc mestre)
+# ============================================================================
+criterios_de_pronto:
+  - "[ ] NFC-e/NF-e de homologação validada (protocolo de autorização + DANFE íntegro + anexada no ERPNext)"
+  - "[ ] picking com código de barras (Pick List resolvida por scan, DN baixa estoque que reflete na loja)"
+  - "[ ] NENHUMA VENDA REAL antes disso (gate reafirmado por escrito no CP3)"
+
+# ============================================================================
+# O QUE SERÁ CONFERIDO NA REVISÃO (o que a sessão Opus vai cobrar)
+# ============================================================================
+conferencia:
+  wms:
+    - "24 itens com barcode; Pick List → scan → DN funcional; Invoice criada de order.paid com update_stock=0"
+    - "Replay de order.paid não fatura 2× nem reemite etiqueta/e-mail (idempotência de efeito)"
+    - "Baixa de estoque só nasce no ERP (DN); loja só reflete via stock.changed (princípios 1 e 4)"
+    - "order.shipped volta pro barramento (extensão commitada e PUSHADA se mexeu no www)"
+  fiscal_stack:
+    - "Stack fiscal: sem porta no host, mem_limit, bind em /mnt/storage/volumes/fiscal/ (backup), imagem base pinada + Diun com baseline refeita"
+    - "Cert A1: .pfx ro + senha só no .env 600 + inventário do README no mesmo commit; alerta ntfy de vencimento (30d) armado e testado"
+    - "NTP verde; ambiente homologação pinado no .env"
+  fiscal_emissao:
+    - "Nota de homologação com protocolo de autorização; nfe_chave no Sales Invoice; XML+DANFE anexados"
+    - "Replay não reemite; rejeição SEFAZ vira ntfy + parada (sem loop)"
+    - "Dados fiscais (NCM etc.) nos 24 itens; regime/documento conforme G2"
+  barramento_e_infra:
+    - "Nenhum container novo sem mem_limit; nenhuma porta nova no host/ufw"
+    - "Nenhuma leitura direta de tabela do ERP pela loja (nem ao contrário) — princípio 2"
+    - "Segredos e docs no mesmo commit; workflows exportados; www pushado; desvios do plano anotados nos commits"
+
+# ============================================================================
+# FRONTeIRAS DE TERRITÓRIO (respeitar — docs/frentes/README.md)
+# ============================================================================
+territorios:
+  plataforma: "repos/integracoes (wrapper fiscal, scripts, workflows), stacks/fiscal, stacks/erpnext (config), n8n (tag/pasta plataforma), contratos"
+  back: "repos/www (extensão order_events se W4 precisar) — combinar antes pelo server frente msg"
+  fxlip: "certificado A1 (G1), contador (G2), credenciamento SEFAZ/CSC (G3), DNS/contas externas, decisão de venda real"
+
+# ============================================================================
+# O QUE NÃO FAZER
+# ============================================================================
+nao_fazer:
+  - "NÃO fazer venda real / apontar produção ANTES da homologação validada e da decisão formal (gate da fase)"
+  - "NÃO publicar porta do serviço fiscal no host (rede docker interna resolve; se um dia precisar: DOCKER-USER)"
+  - "NÃO deixar loja/n8n falar com a SEFAZ direto — a única porta de saída fiscal é o serviço fiscal (perímetro do certificado)"
+  - "NÃO setar update_stock=1 na Sales Invoice (baixa nasce no Delivery Note)"
+  - "NÃO retry automático de rejeição SEFAZ (correção manual; loop de lote rejeitado é alerta, não automação)"
+  - "NÃO instalar app de localização Brasil no ERPNext nesta fase (custom fields bastam; revisar só se SPET/SPED um dia importar)"
+  - "NÃO editar repos/www sem commit+push (deploy reseta working tree)"
+  - "NÃO rodar nenhum roteiro automático deste plano sem janela acordada (aviso_coordenacao)"
+  - "NÃO mexer no container do 9Router (regra inegociável das frentes)"
+
+# ============================================================================
+# FONTES EXTERNAS (consultadas 2026-09-04)
+# ============================================================================
+fontes:
+  acbr:
+    - "Certificado A1/A3 em Linux (Projeto ACBr): https://www.projetoacbr.com.br/forum/topic/43049-certificado-a1-e-a3-em-linux/"
+    - "ACBrLibNFe — configuração do certificado (A1/A3): https://www.projetoacbr.com.br/forum/topic/58955-acbrlibnfe-como-configurar-o-certificado-a1-e-a3/"
+    - "Releases ACBrLib Linux: https://github.com/projetoacbr/ACBr/releases (pinar versão exata no Dockerfile)"
+  sefaz:
+    - "Portal nacional NF-e (eventos, webservices, manuais): https://www.nfe.fazenda.gov.br"
+    - "CSC e credenciamento: portal da SEFAZ do SEU estado (G3) — homologação é ambiente separado e obrigatório"

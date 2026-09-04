@@ -158,6 +158,28 @@ async function handleRequest(req, res) {
     return;
   }
 
+  // 5. Criação de Shipment no EverShop a partir do DN/WMS (POST /shop/create-shipment) — W4
+  if (method === 'POST' && url === '/shop/create-shipment') {
+    if (!checkAuth(req, res)) return;
+
+    try {
+      const data = await parseJsonBody(req);
+      const { createShopShipment } = require('./src/shop/shipment-service');
+      const result = await createShopShipment({
+        orderNumber: data.order_number,
+        trackingCode: data.tracking_code || data.tracking_no,
+        carrier: data.carrier || 'custom'
+      });
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify(result));
+    } catch (err) {
+      console.error('[HTTP:create-shipment] Erro ao criar shipment na loja:', err.message);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ error: 'Failed to create shipment', message: err.message }));
+    }
+  }
+
   // 404
   res.writeHead(404, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ error: 'Not Found' }));
