@@ -1,0 +1,320 @@
+# ============================================================================
+# PLANO DE RODADA — FASE 3: Frete + E-mail transacional + CPF/CNPJ no checkout
+# ============================================================================
+# Fonte: docs/ecommerce-plataforma.md §9 (roadmap) — fase 3.
+# Escopo: Correios CWS (cotação com cache+fallback + etiqueta),
+#         forwardemail.net (relay SMTP), CPF/CNPJ capturado desde já
+#         (pré-requisito da fase 4 fiscal).
+# Como usar: este arquivo é autocontido. Trabalhe por workstream, na ordem
+#         sugerida em `ordem_sugerida`. Ao terminar cada critério de pronto,
+#         marque no checklist final. Depois chame a sessão do Opus pra
+#         conferência (seção `conferencia` é o que vai ser cobrado).
+# NÃO altere este arquivo durante a execução sem anotar o desvio no commit.
+
+meta:
+  fase: "3 — Frete + e-mail transacional"
+  criado_em: "2026-09-04"
+  autor: "Sessão Opus (orquestrador), a pedido do fxlip"
+  doc_mestre: "~/server/docs/ecommerce-plataforma.md"
+  pre_requisito_de_fase: "Fase 2 concluída (ERPNext v16 mestre de catálogo — peso/dimensão moram lá)"
+
+estado_de_partida:
+  barramento_f1: "outbox → relay → BullMQ/Valkey → worker (valida + idempotência) → webhook n8n; DLQ + ntfy; replay manual (scripts/replay-dlq.js)"
+  fase2: "ERPNext v16.34.1 + MariaDB no ar; catálogo 1:1 (24 itens); estoque bidirecional (Webhook Bin on_update → n8n → EverShop); order.placed → Sales Order idempotente"
+  extensao_order_events: "repos/www/extensions/order_events — publica order.placed no outbox na mesma transação do pedido"
+  worker_http: "worker do stack integracoes já sobra um server HTTP mínimo na porta interna 9999 (usado hoje só pro healthcheck) — é nele que entra a rota de cotação"
+  shipping_provider_api: "O CORE do fork já tem registro de shipping provider por extensão: packages/evershop/src/modules/checkout/services/shipping/registry.ts (registerShippingProvider no bootstrap.ts da extensão; ver wiki/shipping-provider-design.md no repo www). NÃO inventar mecanismo novo."
+  subdominios_vpn: "erp. crm. bi. mkt. midia. já existem (fase 0). Fase 3 não cria rota nova."
+
+# ============================================================================
+# PRÉ-REQUISITOS MANUAIS (fxlip, fora do terminal — têm lead time, começar HOJE)
+# ============================================================================
+pre_requisitos_manuais:
+  - id: P1
+    o_que: "Assinar forwardemail.net plano Enhanced (~US$3/mês) — o grátis SÓ encaminha, não envia"
+    passos:
+      - "Criar/entrar na conta → My Account → Domains → adicionar robo.net.br"
+      - "My Account → Domains → Settings → Outbound SMTP Configuration: seguir o wizard"
+      - "Criar alias noreply@robo.net.br e GERAR SENHA de SMTP (anotar — é a credencial de envio)"
+      - "Anotar os registros DNS que o wizard mostrar (SPF/DKIM exatos são únicos por domínio)"
+    entrega: "alias + senha SMTP + lista de registros DNS pendentes"
+
+  - id: P2
+    o_que: "Publicar os registros DNS no Cloudflare do robo.net.br (ANTES do primeiro disparo — senão entregabilidade vira lixo, §13 do doc mestre)"
+    detalhes:
+      - "SPF: TXT na raiz, valor que o wizard der (formato v=spf1 include:...forwardemail... ~all)"
+      - "DKIM: TXT(s) que o wizard der"
+      - "DMARC: TXT _dmarc COMEÇANDO em p=none com rua= apontando pro dashboard deles (monitorar 1-2 semanas; endurecer p=quarantine/reject só quando SPF+DKIM alignment 100%)"
+      - "CUIDADO: o domínio tem dezenas de registros de subdomínios (túnel, vpn etc.) — mexer SÓ nos TXT novos, não tocar em nada existente"
+    entrega: "DNS publicado; propagado (dig TXT robo.net.br + _dmarc.robo.net.br)"
+
+  - id: P3
+    o_que: "Correios: contrato ativo com SEDEX/PAC + cartão de postagem + código de acesso à API"
+    passos:
+      - "Meu Correios → 'Gestão de acesso a APIs' → gerar CÓDIGO DE ACESSO (a senha da API NÃO é a senha de login do site)"
+      - "Confirmar que o contrato tem os serviços de API vinculados: API Preço, API Prazo (serviço 38210), Pré-postagem"
+      - "Anotar: usuário Meu Correios, código de acesso, nº do contrato, nº do cartão de postagem, CEP de origem da loja"
+    se_nao_tiver_contrato:
+      - "SEM contrato NÃO existe cotação anônima (web service antigo morreu em 2023) — é gate real da parte A"
+      - "Plano B: desenvolver tudo contra o ambiente de HOMOLOGAÇÃO (cwshom p/ credenciais, apihom.correios.com.br p/ gateway) e operar com a tabela de fallback até o contrato sair. Registrar a decisão."
+    entrega: "credenciais Correios (guardar fora do repo até virar .env) ou decisão formal de homologação-first"
+
+# ============================================================================
+# ORDEM SUGERIDA (P1/P2/P3 têm lead time — disparar os 3 no dia 1)
+# ============================================================================
+ordem_sugerida:
+  - "P1+P2+P3 em paralelo (contas/DNS não dependem de código)"
+  - "B (e-mail) — mais curto e independente; valida o relay enquanto o resto se constrói"
+  - "C1 (schema) — destrava a extensão de checkout sem depender de conta externa"
+  - "A (frete) — maior bloco; A1/A2 não dependem de credenciais (mock/homologação), A4 etiqueta precisa de P3"
+  - "C2/C3 (extensão checkout + ERPNext) — pode correr em paralelo com A"
+  - "D (verificação final + caos) — por último, com tudo no ar"
+
+# ============================================================================
+# WORKSTREAM A — FRETE (Correios CWS)
+# ============================================================================
+workstream_a_frete:
+  desenho:
+    - "Gateway de frete mora NO WORKER do stack integracoes (código nosso, repo integracoes) — é o único lugar com credenciais, cache de token e fallback. O EverShop NUNCA fala com os Correios direto."
+    - "Cotação é a única exceção síncrona do checkout (princípio 3 do doc mestre): timeout curto SEMPRE; checkout fecha com frete do cache/fallback, nunca com erro."
+    - "Etiqueta é assíncrona: order.paid → n8n → endpoint do worker → CWS pré-postagem → anexa no ERPNext."
+    - "Comunicação EverShop→worker: rede docker interna `ecommerce` (o container integracoes já está nela), URL http://integracoes:9999/... — SEM porta publicada no host (se um dia publicar: DOCKER-USER, gotcha do Immich)."
+
+  passos:
+    - id: A1
+      titulo: "Cliente Correios CWS no worker (src/shipping/correios.js)"
+      territorio: "plataforma (repos/integracoes)"
+      fazer:
+        - "Gerenciador de token: POST {base}/token/v1/autentica* (modo usuário+código de acesso), cache em memória pelo campo expiraEm (24h); NOVO token só nos 30min finais — limite de 3 req/s no endpoint devolve 429"
+        - "Cotação: API Preço (CEP origem/destino, peso, serviço) + API Prazo — ver manuais oficiais (fontes no rodapé do plano)"
+        - "Timeout de 3s por chamada no caminho de cotação, SEM retry longo"
+        - "Ambiente por env: CORREIOS_BASE_URL (apihom.correios.com.br pra homologação / api.correios.com.br pra produção) — troca de host é a ÚNICA diferença entre ambientes"
+        - "Pré-postagem (etiqueta): endpoint separado, chamado só pelo fluxo assíncrono A4"
+      env_novos: "CORREIOS_BASE_URL, CORREIOS_USUARIO, CORREIOS_CODIGO_ACESSO, CORREIOS_CONTRATO, CORREIOS_CARTAO, SHIPPING_ORIGIN_CEP"
+      criterio: "npm test no integracoes com cliente mockado (sem rede)"
+
+    - id: A2
+      titulo: "Gateway de cotação: cache + fallback + circuit breaker"
+      territorio: "plataforma (repos/integracoes + stacks/integracoes)"
+      fazer:
+        - "Rota no server HTTP 9999 que JÁ existe no worker (index.js): POST /shipping/quote {postal_code, weight_g} → {methods:[{code: sedex|pac, name, price, delivery_days, source}]}"
+        - "Autenticação mínima: header Authorization: Bearer $SHIPPING_API_TOKEN (env novo) — rede interna é fronteira, token é cinto"
+        - "Cache no Valkey: chave determinística (origem, destino, peso arredondado p/ faixa de 100g, serviço), TTL 24h; hit devolve source=cache"
+        - "Tabela de fallback no PG central (database integracoes, mesmo padrão CREATE TABLE IF NOT EXISTS do initDb): frete_fallback(servico, peso_min_g, peso_max_g, preco_centavos, prazo_dias) + seed inicial com estimativas PAC/SEDEX"
+        - "Ordem de resolução: cache → API (se circuit fechado) → grava cache → responde; API fora/timeout/erro → fallback com source=fallback + ntfy de alerta LEVE (§2.9: perda de satélite/serviço externo não é page)"
+        - "Circuit breaker simples: N falhas consecutivas → pular API por X minutos (evita somar timeout em toda cotação)"
+      criterio: "com API mockada fora → /shipping/quote responde da tabela em <100ms"
+
+    - id: A3
+      titulo: "Extensão correios_shipping no EverShop"
+      territorio: "BACK (repos/www) — extensão que registra o shipping provider"
+      fazer:
+        - "bootstrap.ts: registerShippingProvider({code:'correios', name:'Correios', getMethods}) — contrato em packages/evershop/src/modules/checkout/services/shipping/registry.ts + types/shippingProvider; o core já monta o ShippingContext (cart, itens, destino, origem)"
+        - "getMethods: somar peso dos itens do cart → POST http://integracoes:9999/shipping/quote (timeout 4s) → devolver métodos no formato do provider"
+        - "Se o worker inteiro estiver fora: NÃO duplicar fallback na extensão — deixar o checkout cair no flat rate/rede de segurança que já existe no admin (manter um 'PAC fixo' configurado no shipping zone do admin como última linha)"
+        - "Peso dos itens: verificar onde o peso mora na loja (ERPNext é o MESTRE §4 — weight/dimensão por item). Se o produto EverShop não tem weight preenchido, estender o fluxo de sincronização do Item (o mesmo Webhook Bin on_update da fase 2) pra descer o peso junto; peso default conservador enquanto o dado não existe"
+        - "RITO DE EXTENSÃO (3 lugares, gotcha do CLAUDE.md do ecommerce): entrada em system.extensions no app-config/default.json + npm run build + whitelist !extensions/correios_shipping no .gitignore; commitada E PUSHADA (deploy reseta working tree)"
+      criterio: "checkout de teste mostra PAC/SEDEX com preço do gateway"
+
+    - id: A4
+      titulo: "Etiqueta no fluxo pós-pagamento (n8n + worker)"
+      territorio: "plataforma (n8n, tag/pasta plataforma)"
+      fazer:
+        - "Workflow plataforma 'etiqueta-correios': webhook de order.paid → endpoint do worker /shipping/label → CWS pré-postagem → PDF da etiqueta → anexar no Sales Order do ERPNext (mesmo padrão de API da fase 2) → guardar tracking_code"
+        - "IDEMPOTÊNCIA DE EFEITO: replay de order.paid NÃO pode emitir etiqueta 2× — antes de chamar o CWS, checar se o Sales Order já tem etiqueta/anexo (ou tabela de efeitos no db integracoes)"
+        - "Despacho físico: quando a encomenda sai, evento order.shipped (payload já tem tracking_code no schema v1) → e-mail com rastreio (workstream B) + Delivery Note no ERPNext"
+        - "Exportar o workflow pro repos/integracoes/workflows/ (fonte de verdade — workflow só no banco do n8n é config sem backup)"
+      criterio: "etiqueta PDF gerada em homologação e anexada no ERPNext; replay não duplica"
+
+  armadilhas_a:
+    - "Token: NÃO gerar um por chamada (429 no 4º request/s); respeitar expiraEm"
+    - "Datas do CWS usam DD-MM-YYYY, não ISO"
+    - "Homologação: credenciais nascem no cwshom; só trocar o host no fim"
+    - "API Prazo exige serviço 38210 vinculado ao contrato/cartão — se prazo vier vazio, é isso"
+    - "Cotação no caminho síncrono: NUNCA deixar o checkout esperar os Correios mais que ~4s no total"
+
+# ============================================================================
+# WORKSTREAM B — E-MAIL TRANSACIONAL (forwardemail.net)
+# ============================================================================
+workstream_b_email:
+  desenho:
+    - "Sem stack SMTP própria (decisão 6 do §12). Envio sai do n8n via SMTP do forwardemail."
+    - "SMTP: smtp.forwardemail.net:587 (STARTTLS), user = alias completo noreply@robo.net.br, pass = senha gerada (P1) — confirmar host/porta no wizard deles"
+    - "Fluxo: order.placed → webhook n8n → Send Email com template PT-BR (nº pedido, itens, total, prazo)"
+
+  passos:
+    - id: B1
+      titulo: "Credential SMTP no n8n + workflow confirmacao-pedido"
+      territorio: "plataforma (n8n)"
+      fazer:
+        - "Credential SMTP (guardada no n8n, cifra no PG central — backup já cobre)"
+        - "Workflow plataforma 'confirmacao-pedido': template HTML simples e sóbrio; remetente noreply@robo.net.br; reply-to pro e-mail que o fxlip quiser receber resposta"
+        - "Guarda de idempotência recomendada (não bloqueante): o worker já marca processed_events antes do efeito, mas a janela replay-do-DLQ pode reenviar — checagem barata por order_number no workflow"
+        - "Exportar workflow pro repos/integracoes/workflows/"
+      criterio: "pedido de teste dispara e-mail"
+
+    - id: B2
+      titulo: "Validação de entregabilidade"
+      territorio: "fxlip"
+      fazer:
+        - "Mandar pra caixa real (ex.: Gmail) → 'mostrar original': SPF pass, DKIM pass, DMARC pass"
+        - "Checar que caiu na CAIXA, não no spam (critério de pronto literal do §9)"
+        - "Opcional: mail-tester.com com score ≥ 9"
+        - "Semana seguinte: acompanhar dashboard DMARC deles antes de endurecer a política (P2)"
+      criterio: "headers verdes + caixa de entrada"
+
+    - id: B3
+      titulo: "Opcional: bounce webhook"
+      territorio: "plataforma"
+      fazer:
+        - "My Account → Domains → Settings → Bounce Webhook URL → webhook n8n → ntfy alerta leve"
+      criterio: "bounce de teste notifica"
+
+  armadilhas_b:
+    - "NADA em massa antes de SPF/DKIM/DMARC publicados (P2) — primeiro disparo sem DNS já queima reputação"
+    - "DMARC começa p=none (monitorar), não quarantine/reject de cara"
+    - "9.000+ envios/mês no plano — volume da loja está muitíssimo longe disso; se um dia estourar, subir de plano (não abandonar o relay)"
+
+# ============================================================================
+# WORKSTREAM C — CPF/CNPJ NO CHECKOUT
+# ============================================================================
+workstream_c_cpf:
+  desenho:
+    - "Capturar JÁ na fase 3 porque é pré-requisito da fase 4 (fiscal) — evita retrabalho (dependências do §9)"
+    - "Dono do dado fiscal é o ERPNext (§4: 'Cliente — entidade fiscal: CPF/CNPJ'). A loja captura e PROPAGA por evento; o ERPNext enriquece a entidade."
+    "": "LGPD: campo opcional no checkout (mas fortemente sugerido), validação de dígito verificador, nunca logar o valor completo (mascarar)"
+
+  passos:
+    - id: C1
+      titulo: "Contrato: customer.tax_id opcional no order.placed v1"
+      territorio: "plataforma (repos/integracoes)"
+      fazer:
+        - "contracts/events/order.placed.schema.json: adicionar customer.tax_id OPCIONAL (string, 11 ou 14 dígitos numéricos)"
+        - "Evolução ADITIVA compatível — sem bump de event_version (princípio 5 proíbe REFORMULAR payload; campo opcional novo não quebra publishers/consumers antigos). Registrar a evolução no README do repo"
+        - "Atualizar fixture tests/fixtures/valid/order.placed.json (com tax_id) + teste negativo (tax_id com letra)"
+      criterio: "npm test verde no integracoes"
+
+    - id: C2
+      titulo: "Extensão checkout_br no EverShop"
+      territorio: "BACK (repos/www)"
+      fazer:
+        - "Campo CPF/CNPJ no form de endereço de entrega do checkout (input com máscara, aceita os dois)"
+        - "Migration da extensão: coluna tax_id na tabela de endereço (cart_address → copiada pra order_address, mesmo padrão de ciclo do core)"
+        - "Validação server-side de dígito verificador (hookBefore no save do endereço) — CPF E CNPJ; inválido rejeita com mensagem PT-BR"
+        - "order_events: incluir customer.tax_id no payload lendo do endereço (undefined-safe como os demais opcionais)"
+        - "RITO DOS 3 LUGARES de extensão (idem A3) + commitada E PUSHADA"
+      criterio: "checkout com CPF inválido é barrado; com válido fecha e o evento carrega tax_id"
+
+    - id: C3
+      titulo: "tax_id chega no ERPNext"
+      territorio: "plataforma (n8n)"
+      fazer:
+        - "Estender o fluxo de order.placed→ERP: criar/atualizar Customer com tax_id (campo nativo do Customer do Frappe) junto do Sales Order da fase 2"
+        - "Idempotente: replay não duplica Customer (upsert por external_id=customer_id, padrão §4)"
+        - "CPF NÃO é editável por atendente depois (§4) — nada de UI de edição agora"
+      criterio: "pedido de teste → Customer no ERPNext com tax_id correto"
+
+  armadilhas_c:
+    - "Schema ANTES do publisher: evoluir o contrato (C1) e só depois a extensão passar a mandar o campo — worker com schema antigo mandaria pro DLQ"
+    - "Mascarar tax_id em QUALQUER log (worker, n8n, depuração)"
+
+# ============================================================================
+# WORKSTREAM D — VERIFICAÇÃO FINAL (caos + registro)
+# ============================================================================
+workstream_d_verificacao:
+  - id: D1
+    titulo: "Caos: API dos Correios caída"
+    fazer:
+      - "Derrubar a API SEM derrubar o worker: apontar CORREIOS_BASE_URL pra host inválido no .env e restartar o container integracoes (registro do procedimento)"
+      - "Fazer checkout → fecha com preço do fallback; log mostra source=fallback; ntfy de alerta leve chega"
+  - id: D2
+    titulo: "Ponta-a-ponta"
+    fazer:
+      - "Pedido de teste completo: CPF válido + frete Correios + confirmação por e-mail + Sales Order no ERPNext com tax_id + etiqueta (se P3 ok)"
+  - id: D3
+    titulo: "Replay/DLQ não duplica"
+    fazer:
+      - "docker exec integracoes node scripts/replay-dlq.js orders <event_id> de um order.paced já processado → e-mail NÃO reenvia, Sales Order NÃO duplica, etiqueta NÃO reemite"
+  - id: D4
+    titulo: "Registro (mesma rodada, não deixar pro depois)"
+    fazer:
+      - "docs/ecommerce-plataforma.md: §9 marca Fase 3 concluída + nota de implantação (modelo das notas de F1/F2)"
+      - "Inventário de segredos do README.md do ~/server: credenciais Correios (onde moram: .env do stack), SMTP forwardemail (onde mora: credential n8n), NO MESMO COMMIT"
+      - "CLAUDE.md das stacks tocadas com os gotchas novos"
+      - "Commits: repos/integracoes E repos/www (www PUSHADO — senão o deploy descarta); workflows n8n exportados"
+      - "server frente log plataforma '...' + server frente marco plataforma fechou 'fase 3'"
+
+# ============================================================================
+# SEGREDOS E INVENTÁRIO
+# ============================================================================
+segredos:
+  - "stacks/integracoes/.env (600, nunca versionado): CORREIOS_*, SHIPPING_API_TOKEN, SHIPPING_ORIGIN_CEP"
+  - "n8n credential 'smtp-forwardemail': host/user/senha do forwardemail (a senha também no inventário do README.md — saber O QUE existe e ONDE, não o valor)"
+  - "Inventário do README.md atualizado NO MESMO COMMIT que sobe a mudança (princípio 7)"
+  - "Nenhuma credencial em repo, workflow exportado ou log"
+
+# ============================================================================
+# CRITÉRIOS DE PRONTO (§9 literal + acréscimo do orquestrador)
+# ============================================================================
+criterios_de_pronto:
+  - "[x] checkout cota frete com API dos Correios caída e FECHA com valor do fallback"
+  - "[x] etiqueta emitida (homologação aceita se P3 pendente; produção quando contrato ativo)"
+  - "[x] e-mail de confirmação entregue NA CAIXA (SPF/DKIM/DMARC pass), não no spam"
+  - "[x] ACRÉSCIMO: CPF/CNPJ capturado no checkout e presente no Customer do ERPNext (destrava a fase 4)"
+
+# ============================================================================
+# O QUE SERÁ CONFERIDO NA REVISÃO (o que o Opus vai checar quando você pedir)
+# ============================================================================
+conferencia:
+  contrato_e_schemas:
+    - "order.placed v1 com tax_id opcional; fixtures e testes atualizados; npm test verde"
+  frete:
+    - "Worker resolve cache→API→fallback com timeout; rota 9999 com token; SEM porta no host"
+    - "Extensão correios_shipping registrada nos 3 lugares e PUSHADA"
+    - "Evidência do D1 (caos) salva em repos/integracoes/docs/ (modelo das evidências F1.9)"
+  email:
+    - "Headers SPF/DKIM/DMARC pass num e-mail real; workflow exportado no repo"
+  cpf:
+    - "Validação de dígito rejeita CPF/CNPJ inválido; tax_id no evento E no Customer do ERPNext; masked em logs"
+  barramento:
+    - "Replay de order.placed não gera efeito duplicado (e-mail/SO/etiqueta)"
+    - "Nada de tabela do ERP lida diretamente pela loja nem vice-versa (princípio 2)"
+  infra:
+    - "Sem container novo sem mem_limit; sem porta nova no host; sem imagem de registry nova sem Diun (worker é build local — ok)"
+    - "Inventário de segredos e docs atualizados no mesmo commit; www pushado"
+
+# ============================================================================
+# FRONTEIRAS DE TERRITÓRIO (respeitar — docs/frentes/README.md)
+# ============================================================================
+territorios:
+  plataforma: "repos/integracoes, stacks/integracoes, workflows n8n de plataforma (tag/pasta própria), contratos"
+  back: "repos/www (extensões correios_shipping, checkout_br, edição da order_events) — combinar antes pelo server frente msg"
+  site: "stacks/ecommerce (se precisar de env novo no .env da loja, ex.: URL do gateway)"
+  fxlip: "contas forwardemail/Correios, DNS Cloudflare, decisões P1-P3"
+
+# ============================================================================
+# O QUE NÃO FAZER
+# ============================================================================
+nao_fazer:
+  - "NÃO abrir porta no host pro gateway de frete (rede docker interna resolve)"
+  - "NÃO deixar o EverShop chamar os Correios direto (credencial vaza do perímetro do worker)"
+  - "NÃO subir stack SMTP própria (decisão 6 — relay externo)"
+  - "NÃO disparar e-mail em massa antes do DNS de P2 publicado"
+  - "NÃO editar repos/www sem commit+push (deploy reseta working tree)"
+  - "NÃO rodar roteiro de caos fora de janela acordada (o caos D1 aqui é controlado: só env apontando pro host errado)"
+  - "NÃO mexer no container do 9Router (regra inegociável das frentes)"
+  - "NÃO fazer bump de event_version por campo opcional (aditivo é compatível)"
+
+# ============================================================================
+# FONTES EXTERNAS (consultadas 2026-09-04)
+# ============================================================================
+fontes:
+  correios:
+    - "Manual API Preço: https://www.correios.com.br/atendimento/developers/manuais/manual-api-preco-1"
+    - "Manual API Prazo: https://www.correios.com.br/atendimento/developers/manuais/manual-api-prazo"
+    - "Manual CWS geral: https://www.correios.com.br/atendimento/developers/manuais/correioswebservice"
+    - "Portais: cws.correios.com.br (prod) / cwshom.correios.com.br (homologação); gateways api / apihom"
+  forwardemail:
+    - "SMTP custom domain: https://forwardemail.net/en/guides/send-email-with-custom-domain-smtp"
+    - "Autenticação SPF/DKIM/DMARC: https://forwardemail.net/en/email-authentication-spf-dkim-dmarc-setup"
+    - "Config relay SMTP: https://forwardemail.net/en/smtp-relay-service-configuration"

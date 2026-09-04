@@ -32,7 +32,11 @@
         "customer_id": { "type": "string" },
         "email": { "type": "string", "format": "email" },
         "full_name": { "type": "string", "minLength": 1 },
-        "tax_id": { "type": "string", "description": "CPF ou CNPJ do comprador" },
+        "tax_id": {
+          "type": "string",
+          "pattern": "^(\\d{11}|\\d{14})$",
+          "description": "CPF (11 dígitos) ou CNPJ (14 dígitos) do comprador (apenas números)"
+        },
         "phone": { "type": "string" }
       }
     },

@@ -22,3 +22,7 @@ Repositório central de contratos, barramento de eventos (BullMQ × Valkey), rel
 npm install
 npm test
 ```
+
+## Histórico de Evoluções de Contrato (Aditivas / Compatíveis)
+
+- **Fase 3 (2026-09-04)**: Adicionado campo opcional `customer.tax_id` no schema `order.placed.schema.json` v1 (pattern `^(\\d{11}|\\d{14})$` para CPF/CNPJ sem pontuação). Evolução estritamente aditiva sem alteração de `event_version`.

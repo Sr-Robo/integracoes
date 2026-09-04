@@ -4,7 +4,7 @@
   "description": "Barramento de integracoes, contratos e workers da plataforma e-commerce",
   "main": "index.js",
   "scripts": {
-    "test": "node tests/validate-contracts.test.js",
+    "test": "node tests/validate-contracts.test.js && node tests/shipping.test.js",
     "smoke:bullmq": "node smoke-tests/bullmq-smoke.js"
   },
   "dependencies": {

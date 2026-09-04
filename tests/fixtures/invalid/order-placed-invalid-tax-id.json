@@ -14,13 +14,12 @@
       "customer_id": "cust_999",
       "email": "cliente@exemplo.com.br",
       "full_name": "Felipe Cyberpunk",
-      "tax_id": "12345678909",
+      "tax_id": "123.456.789-00",
       "phone": "+5511999998888"
     },
     "shipping_address": {
       "full_name": "Felipe Cyberpunk",
       "address1": "Rua das Flores, 100",
-      "address2": "Apto 42",
       "city": "São Paulo",
       "province": "SP",
       "postal_code": "01001-000",
