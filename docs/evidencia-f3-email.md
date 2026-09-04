@@ -46,9 +46,20 @@ Message-ID 1788526358` entregue **na caixa de entrada** do Gmail
 
 ## Pendências abertas por esta evidência
 
-- **Smoke 4** (recebimento: relay → MX → `sr@` → forward Gmail) — aguardando
-  confirmação do fxlip. Não bloqueia o critério (que é de envio).
 - **Endurecer DMARC** (`p=none → quarantine → reject`) ~2026-09-18 com
   alignment 100% no dashboard DMARC deles — registrado em `docs/n8n.md`.
-- Opcional: bounce webhook do forwardemail → ntfy (era B3 do plano) — bounce
-  deixaria de ser invisível.
+
+## Recebimento (circuito `sr@`) e bounce webhook (B3) — fechados 2026-09-04
+
+- **Circuito de recebimento validado em duas camadas**: MX deles aceita
+  `RCPT sr@robo.net.br` (`250 2.1.5`, teste direto sem relay) e o alias
+  encaminha — os smokes 4/4B **foram entregues**, noutro endereço que o
+  fxlip tinha configurado sem perceber ("erro meu, era um outro email").
+  Nada quebrado; destino conferido pelo dono.
+- **B3 (bounce webhook) no ar e testado ponta-a-ponta pela URL pública**:
+  `https://hooks.robo.net.br/bounce/<segredo>` → Cloudflare → túnel
+  `homelab` → Traefik (rule de path exato) → worker → ntfy
+  `plataforma-events`. HTTP 200 na URL pública + notificação recebida pelo
+  fxlip no ntfy (incluindo disparo de fora). Segredo no `.env` do stack
+  (`BOUNCE_WEBHOOK_SECRET`); segredo errado = 404 igual rota inexistente.
+  Commits: `b8fe396` (integracoes) e `2c50242` (~/server).
