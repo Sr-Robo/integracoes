@@ -32,7 +32,7 @@ estado_de_partida:
   segredos_vazados:
     - id: S1
       tipo: "ERPNext API key:secret"
-      valor_exposto: "cfed787415906be:14c92a149e624db"
+      valor_exposto: "cfed****:****24db"
       dono: "User integracoes@robo.net.br no ERPNext (enabled=1)"
       onde_no_codigo:
         - "scripts/setup-phase4-workflows.js (6x)"
@@ -44,7 +44,7 @@ estado_de_partida:
       var_env_ja_existe: "SIM — ERPNEXT_API_KEY + ERPNEXT_API_SECRET no .env 600"
     - id: S2
       tipo: "Senha do admin EverShop"
-      valor_exposto: "IntegracoesRobo2026!Sec (user integracoes@robo.net.br)"
+      valor_exposto: "Integracoes****!Sec (user integracoes@robo.net.br)"
       onde_no_codigo:
         - "src/shop/shipment-service.js:50 (login runtime do worker)"
         - "workflows/workflows-export-2026-09-03.json (1x)"
@@ -53,7 +53,7 @@ estado_de_partida:
       var_env_ja_existe: "NÃO — criar EVERSHOP_ADMIN_EMAIL + EVERSHOP_ADMIN_PASSWORD no .env 600"
     - id: S3
       tipo: "Token do webhook ERP→loja (X-Erp-Token)"
-      valor_exposto: "sec_erp_stock_84b729f01a8"
+      valor_exposto: "sec_erp_stock_****"
       nota: "ACHADO ADICIONAL — não estava no diagnóstico inicial, mesmo caso dos outros"
       onde_no_codigo:
         - "scripts/setup-phase4-workflows.js"
@@ -99,7 +99,7 @@ workstream_r_rotacao:
         - "Regenerar o par de API do user integracoes@robo.net.br via bench/console frappe (api_secret novo; api_key pode ser mantida ou regerada — regerar as duas é mais limpo)"
         - "Caminho: docker exec erpnext-backend ... frappe.core.doctype.user.user.generate_keys(user) OU regenerar pela UI (User → integracoes → API Access → Generate Keys)"
         - "Atualizar ERPNEXT_API_KEY + ERPNEXT_API_SECRET no stacks/integracoes/.env (600)"
-        - "O par antigo cfed787415906be:14c92a149e624db vira inválido no mesmo instante — confirmar"
+        - "O par antigo cfed****:****24db vira inválido no mesmo instante — confirmar"
       criterio: "chamada REST ao ERP com o par NOVO responde 200; com o par ANTIGO responde 401/403"
     - id: R2
       titulo: "Trocar a senha do admin EverShop (S2)"
@@ -133,8 +133,8 @@ workstream_c_codigo:
     - id: C1
       titulo: "scripts/setup-phase4-workflows.js"
       fazer:
-        - "Trocar as 6 ocorrências de 'token cfed787415906be:14c92a149e624db' por `token ${process.env.ERPNEXT_API_KEY}:${process.env.ERPNEXT_API_SECRET}`"
-        - "Trocar 'sec_erp_stock_84b729f01a8' por process.env.ERP_STOCK_WEBHOOK_SECRET"
+        - "Trocar as 6 ocorrências de 'token cfed****:****24db' por `token ${process.env.ERPNEXT_API_KEY}:${process.env.ERPNEXT_API_SECRET}`"
+        - "Trocar 'sec_erp_stock_****' por process.env.ERP_STOCK_WEBHOOK_SECRET"
         - "No topo: validar que as envs existem; se faltar, throw com mensagem clara"
       criterio: "grep no arquivo não acha nenhum dos 3 valores literais"
     - id: C2
@@ -145,7 +145,7 @@ workstream_c_codigo:
     - id: C3
       titulo: "scripts/test-phase4-wms-pipeline.js"
       fazer:
-        - "Trocar sec_erp_stock_84b729f01a8 por process.env.ERP_STOCK_WEBHOOK_SECRET"
+        - "Trocar sec_erp_stock_**** por process.env.ERP_STOCK_WEBHOOK_SECRET"
       criterio: "grep limpo"
     - id: C4
       titulo: "src/shop/shipment-service.js (runtime do worker)"
@@ -177,7 +177,7 @@ workstream_n_n8n:
         - "plataforma-eco-eventos: todos os nós httpRequest ao ERP (GET/POST/PUT Customer, Sales Order) passam a usar a credential do N1 em vez do header Authorization manual"
         - "plataforma-erp-stock: nó 'Login Admin Loja' — a senha nova NÃO pode ir crua no jsonBody; usar credential (ou, no mínimo, referência via $env/credential). Preferir credential."
         - "plataforma-erp-stock: nó 'Valida X-Erp-Token' — comparar contra o valor rotacionado (S3) via credential/env, não literal"
-      criterio: "SELECT nodes::text ... LIKE '%cfed787%' OR LIKE '%IntegracoesRobo2026%' OR LIKE '%sec_erp_stock_84b729%' devolve 0 nos workflows vivos"
+      criterio: "SELECT nodes::text ... LIKE '%cfed%' OR LIKE '%Integracoes****2026%' OR LIKE '%sec_erp_stock%' devolve 0 nos workflows vivos"
     - id: N3
       titulo: "Reexportar os workflows LIMPOS pro repo"
       fazer:
@@ -230,7 +230,7 @@ workstream_v_verificacao:
   - id: V1
     titulo: "Grep global limpo"
     fazer:
-      - "grep -rn 'cfed787415906be\\|14c92a149e624db\\|IntegracoesRobo2026\\|sec_erp_stock_84b729f01a8' repos/integracoes --exclude-dir=node_modules --exclude-dir=.git → 0 resultados"
+      - "grep -rn '<API_KEY>\\|<API_SECRET>\\|<SENHA_EVERSHOP>\\|<ERP_STOCK_TOKEN>' repos/integracoes --exclude-dir=node_modules --exclude-dir=.git → 0 resultados (usar os valores reais ANTIGOS ao rodar)"
       - "Mesmo grep em origin/main e forgejo/main (git grep <sha>)"
   - id: V2
     titulo: "Pipeline funciona com os valores NOVOS"
@@ -264,3 +264,23 @@ nao_fazer:
   - "NÃO commitar o .env (600, gitignored)"
   - "NÃO force-pushar histórico (braço H) antes da rotação estar concluída"
   - "NÃO cravar a senha nova do EverShop no jsonBody de nó n8n — vai em credential"
+  - "NÃO documentar incidente de segredo com o valor LITERAL completo em arquivo versionado — este plano cometeu esse erro e precisou de commit extra de limpeza (ver resultado_execucao)"
+
+# ============================================================================
+# RESULTADO DA EXECUÇÃO (2026-09-04 — fxlip executou, verificação independente)
+# ============================================================================
+resultado_execucao:
+  executado_em: "2026-09-04"
+  R: "CONCLUÍDO — par antigo ERPNext testado contra o ERP vivo pós-execução: 401 (morto); senha EverShop antiga rejeitada no login; token erp-stock rotacionado no .env + emissores"
+  C: "CONCLUÍDO — 4 arquivos migrados pra process.env.* sem fallback com valor real"
+  N: "CONCLUÍDO — credential 'ERPNext API (integracoes)' (5c84d711-e401-447a-8f19-38b8fa111111); SQL conferiu 0 workflows vivos com segredo"
+  G: "CONCLUÍDO — commit 17b001d pushado em origin (GitHub) e forgejo"
+  H: "DECIDIDO NÃO EXECUTAR (fxlip, 2026-09-04) — valores rotacionados são lixo; reescrita de histórico ficaria cosmética"
+  V: "CONCLUÍDO — E2E de 7 passos ok com credenciais novas; grep global limpo"
+  limpeza_pos_execucao: >-
+    O commit da correção (17b001d) reintroduziu os valores LITERAIS no repo
+    público — dentro deste próprio arquivo de plano (campos valor_exposto e
+    comandos de verificação). Commit de limpeza posterior mascarou tudo
+    (cfed****/Integracoes****/sec_erp_stock_****). Os literais completos
+    permanecem apenas no histórico git, onde são inofensivos: rotacionados.
+    Lição registrada em nao_fazer.
