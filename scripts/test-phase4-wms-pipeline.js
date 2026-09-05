@@ -269,6 +269,9 @@ async function runPipeline() {
 
   // Disparar Webhook DN para n8n
   try {
+    if (!process.env.ERP_STOCK_WEBHOOK_SECRET) {
+      throw new Error('ERP_STOCK_WEBHOOK_SECRET environment variable is required');
+    }
     await axios.post('http://n8n:5678/webhook/erp-dn', {
       delivery_note: dnName,
       customer: dnDoc.customer,
@@ -276,7 +279,7 @@ async function runPipeline() {
       items: dnDoc.items
     }, {
       headers: {
-        'X-Erp-Token': 'sec_erp_stock_84b729f01a8',
+        'X-Erp-Token': process.env.ERP_STOCK_WEBHOOK_SECRET,
         'Content-Type': 'application/json'
       }
     });

@@ -1,0 +1,266 @@
+# ============================================================================
+# PLANO DE CORREÇÃO — VAZAMENTO DE CREDENCIAIS (achado na verificação da Fase 4)
+# ============================================================================
+# Fonte: verificação pós-fase-4 (2026-09-04). Credenciais REAIS hardcoded no
+#        código e JÁ PUSHADAS pro GitHub PÚBLICO (github.com/Sr-Robo/integracoes)
+#        e pro Forgejo. Viola o princípio 7 do doc mestre e a própria seção
+#        `segredos`/`nao_fazer` do plano-fase-4.yml.
+# Como usar: autocontido. Braços na ordem de `ordem_obrigatoria`. O braço R
+#        (rotação) é PRÉ-REQUISITO de tudo — remover o hardcode NÃO protege
+#        um segredo que já vazou; só a rotação invalida o que está exposto.
+# Divisão de trabalho: cada passo tem `quem` (fxlip = decisão/ação externa;
+#        assistente = execução no repo/infra). Passos do assistente rodam
+#        DEPOIS que o fxlip aprovar e concluir a rotação (braço R).
+# NÃO alterar este arquivo durante a execução sem anotar o desvio no commit.
+
+meta:
+  titulo: "Correção de vazamento de credenciais no repo integracoes"
+  criado_em: "2026-09-04"
+  autor: "Sessão de verificação, a pedido do fxlip"
+  severidade: "CRÍTICO — segredos reais em repositório público"
+  doc_mestre: "~/server/CLAUDE.md (princípio: segredo nunca em repo/workflow/log)"
+  principio_reitor: >-
+    Remover não basta. O segredo já saiu pro GitHub público — pode estar em
+    fork, clone, cache de commit órfão do GitHub e índices de terceiros. O que
+    de fato protege é ROTACIONAR (invalidar o valor antigo). Limpeza de código
+    e de histórico são secundárias à rotação.
+
+# ============================================================================
+# ESTADO DE PARTIDA (apurado na verificação — não presumir, foi conferido)
+# ============================================================================
+estado_de_partida:
+  segredos_vazados:
+    - id: S1
+      tipo: "ERPNext API key:secret"
+      valor_exposto: "cfed787415906be:14c92a149e624db"
+      dono: "User integracoes@robo.net.br no ERPNext (enabled=1)"
+      onde_no_codigo:
+        - "scripts/setup-phase4-workflows.js (6x)"
+        - "scripts/update-n8n-workflows.js (1x)"
+        - "workflows/workflows-fase4-wms.json (11x)"
+        - "workflows/workflows-export-2026-09-04.json (5x)"
+        - "workflows/workflow-eco-eventos-2026-09-04-smtp-ativo.json (1x)"
+      exposicao: "GitHub PÚBLICO + Forgejo + 2 workflows vivos no n8n"
+      var_env_ja_existe: "SIM — ERPNEXT_API_KEY + ERPNEXT_API_SECRET no .env 600"
+    - id: S2
+      tipo: "Senha do admin EverShop"
+      valor_exposto: "IntegracoesRobo2026!Sec (user integracoes@robo.net.br)"
+      onde_no_codigo:
+        - "src/shop/shipment-service.js:50 (login runtime do worker)"
+        - "workflows/workflows-export-2026-09-03.json (1x)"
+        - "workflows/workflows-export-2026-09-04.json (1x, nó Login Admin Loja)"
+      exposicao: "GitHub PÚBLICO + Forgejo"
+      var_env_ja_existe: "NÃO — criar EVERSHOP_ADMIN_EMAIL + EVERSHOP_ADMIN_PASSWORD no .env 600"
+    - id: S3
+      tipo: "Token do webhook ERP→loja (X-Erp-Token)"
+      valor_exposto: "sec_erp_stock_84b729f01a8"
+      nota: "ACHADO ADICIONAL — não estava no diagnóstico inicial, mesmo caso dos outros"
+      onde_no_codigo:
+        - "scripts/setup-phase4-workflows.js"
+        - "scripts/test-phase4-wms-pipeline.js"
+        - "workflows/workflows-fase4-wms.json"
+        - "workflows/workflows-export-2026-09-04.json (nó Valida X-Erp-Token)"
+      exposicao: "GitHub PÚBLICO + Forgejo + workflow vivo no n8n"
+      var_env_ja_existe: "SIM — ERP_STOCK_WEBHOOK_SECRET no .env 600 (não estava sendo usado)"
+  git:
+    branch_local: "main == forgejo/main (commit a6eaeb7)"
+    origin_github: "origin/main = b1e039c (PÚBLICO); main local está 1 commit à frente (a6eaeb7 não pushado)"
+    nota: "S1/S2/S3 já estão no origin público por commits ANTERIORES a a6eaeb7 — o push pendente não é o que causou o vazamento"
+  padrao_certo_ja_existe:
+    - "scripts/migrate-catalog-to-erp.js e scripts/populate-item-barcodes.js usam process.env.* corretamente"
+    - ".env 600 do stack já tem: EVERSHOP_DB_PASSWORD, ERPNEXT_API_KEY, ERPNEXT_API_SECRET, ERP_STOCK_WEBHOOK_SECRET, BOUNCE_WEBHOOK_SECRET"
+  n8n:
+    credentials_existentes: "httpHeaderAuth (WAHA, Bot HMAC), smtp (forwardemail) — NENHUMA pro ERPNext ainda"
+    workflows_com_segredo_vivo: "plataforma-eco-eventos (Authorization token cru) + plataforma-erp-stock (X-Erp-Token cru + senha EverShop no nó Login Admin Loja)"
+
+# ============================================================================
+# ORDEM OBRIGATÓRIA (rotação ANTES de tudo — o resto é limpeza)
+# ============================================================================
+ordem_obrigatoria:
+  - "R (rotacionar S1, S2, S3) — invalida o que vazou. SEM ISSO o resto é teatro."
+  - "C (trocar hardcode por process.env.* no código) — em paralelo com N"
+  - "N (n8n: credential cifrada + nós sem segredo cru + reexportar limpo)"
+  - "G (commit + push da correção nos DOIS remotes)"
+  - "H (opcional, decisão do fxlip: reescrita de histórico) — só DEPOIS de R"
+  - "V (verificação: grep limpo + pipeline ainda funciona com os valores novos)"
+
+# ============================================================================
+# BRAÇO R — ROTAÇÃO (o que realmente protege)
+# ============================================================================
+workstream_r_rotacao:
+  desenho:
+    - "Cada segredo rotacionado torna o valor exposto LIXO. É o único passo que fecha a janela de exposição."
+    - "Ordem interna livre, mas os 3 antes de qualquer commit — não faz sentido publicar correção que ainda referencia infra viva com segredo comprometido."
+  passos:
+    - id: R1
+      titulo: "Rotacionar API key/secret do ERPNext (S1)"
+      quem: "assistente executa; fxlip aprova (mexe em credencial viva de integração)"
+      fazer:
+        - "Regenerar o par de API do user integracoes@robo.net.br via bench/console frappe (api_secret novo; api_key pode ser mantida ou regerada — regerar as duas é mais limpo)"
+        - "Caminho: docker exec erpnext-backend ... frappe.core.doctype.user.user.generate_keys(user) OU regenerar pela UI (User → integracoes → API Access → Generate Keys)"
+        - "Atualizar ERPNEXT_API_KEY + ERPNEXT_API_SECRET no stacks/integracoes/.env (600)"
+        - "O par antigo cfed787415906be:14c92a149e624db vira inválido no mesmo instante — confirmar"
+      criterio: "chamada REST ao ERP com o par NOVO responde 200; com o par ANTIGO responde 401/403"
+    - id: R2
+      titulo: "Trocar a senha do admin EverShop (S2)"
+      quem: "assistente executa; fxlip aprova"
+      fazer:
+        - "Gerar senha forte nova pro user integracoes@robo.net.br no EverShop"
+        - "Trocar via painel admin ou via API/DB do EverShop (bcrypt na tabela admin_user)"
+        - "Gravar EVERSHOP_ADMIN_EMAIL=integracoes@robo.net.br + EVERSHOP_ADMIN_PASSWORD=<nova> no .env 600"
+      criterio: "login em http://ecommerce_evershop:3000/api/user/tokens funciona com a senha nova e falha com a antiga"
+    - id: R3
+      titulo: "Rotacionar o token do webhook ERP→loja (S3)"
+      quem: "assistente executa; fxlip aprova"
+      fazer:
+        - "Gerar novo valor (ex.: openssl rand -hex 24) pra ERP_STOCK_WEBHOOK_SECRET no .env 600"
+        - "Atualizar o nó 'Valida X-Erp-Token' do workflow plataforma-erp-stock pra ler o valor novo (via credential/env, ver braço N — não voltar a cravar cru)"
+        - "Atualizar quem DISPARA o webhook no ERPNext (o Server Script/Webhook Bin que envia o header X-Erp-Token) pro valor novo"
+      criterio: "webhook com token novo passa; com o antigo recebe rejeição no nó IF"
+  armadilhas_r:
+    - "Rotacionar S1 sem atualizar o .env quebra o worker e os workflows n8n — atualizar .env e reiniciar o container integracoes na mesma janela"
+    - "Trocar a senha do EverShop (R2) sem atualizar shipment-service (braço C) quebra o envio — R2 e a parte de C do shipment andam juntas"
+    - "O restart do container integracoes recarrega env_file — confirmar que subiu com os valores novos (docker exec integracoes env | grep -E 'ERPNEXT_API|EVERSHOP_ADMIN|ERP_STOCK')"
+
+# ============================================================================
+# BRAÇO C — CÓDIGO (trocar hardcode por process.env.*)
+# ============================================================================
+workstream_c_codigo:
+  desenho:
+    - "Seguir o padrão que JÁ existe no repo (migrate-catalog / populate-item-barcodes): ler de process.env, sem fallback com o valor real."
+    - "Sem valor default hardcoded — se a env faltar, o script deve falhar claro (throw), não cair num segredo embutido."
+  passos:
+    - id: C1
+      titulo: "scripts/setup-phase4-workflows.js"
+      fazer:
+        - "Trocar as 6 ocorrências de 'token cfed787415906be:14c92a149e624db' por `token ${process.env.ERPNEXT_API_KEY}:${process.env.ERPNEXT_API_SECRET}`"
+        - "Trocar 'sec_erp_stock_84b729f01a8' por process.env.ERP_STOCK_WEBHOOK_SECRET"
+        - "No topo: validar que as envs existem; se faltar, throw com mensagem clara"
+      criterio: "grep no arquivo não acha nenhum dos 3 valores literais"
+    - id: C2
+      titulo: "scripts/update-n8n-workflows.js"
+      fazer:
+        - "Trocar a ocorrência da API key por process.env.ERPNEXT_API_KEY/SECRET"
+      criterio: "grep limpo"
+    - id: C3
+      titulo: "scripts/test-phase4-wms-pipeline.js"
+      fazer:
+        - "Trocar sec_erp_stock_84b729f01a8 por process.env.ERP_STOCK_WEBHOOK_SECRET"
+      criterio: "grep limpo"
+    - id: C4
+      titulo: "src/shop/shipment-service.js (runtime do worker)"
+      fazer:
+        - "Trocar o objeto de login (linha ~48-51) por email: process.env.EVERSHOP_ADMIN_EMAIL, password: process.env.EVERSHOP_ADMIN_PASSWORD"
+        - "Validar presença das envs no início da função (throw claro se faltar) — é caminho de runtime, não script one-shot"
+      criterio: "grep limpo; worker faz login com a senha nova (depende de R2 + env no container)"
+  armadilhas_c:
+    - "NÃO deixar `|| 'valor-real'` como fallback — é o erro que causou o vazamento. Fallback só pra valor NÃO sensível (host, porta)."
+    - "Os scripts rodam via `docker exec integracoes node scripts/...` — o env vem do env_file do compose; confirmar que rodam com as envs presentes"
+
+# ============================================================================
+# BRAÇO N — n8n (credential cifrada + nós sem segredo cru + export limpo)
+# ============================================================================
+workstream_n_n8n:
+  desenho:
+    - "Segredo em nó n8n vai em CREDENTIAL cifrada, nunca em header Authorization como texto no nó (mesmo padrão das credentials Bot HMAC/WAHA que já existem)."
+    - "O export pro repo é FONTE DE VERDADE e não pode sair com segredo embutido — n8n substitui credential por referência (id/name), não pelo valor, quando o nó usa credential de verdade."
+  passos:
+    - id: N1
+      titulo: "Criar credential httpHeaderAuth pro ERPNext"
+      fazer:
+        - "Nova credential tipo 'Header Auth': Name = Authorization, Value = token <API_KEY_NOVA>:<API_SECRET_NOVO> (valores do R1)"
+        - "Nome sugerido: 'ERPNext API (integracoes)'"
+      criterio: "credential aparece em credentials_entity; valor cifrado no DB"
+    - id: N2
+      titulo: "Trocar os nós dos workflows pra usar a credential (não header cru)"
+      fazer:
+        - "plataforma-eco-eventos: todos os nós httpRequest ao ERP (GET/POST/PUT Customer, Sales Order) passam a usar a credential do N1 em vez do header Authorization manual"
+        - "plataforma-erp-stock: nó 'Login Admin Loja' — a senha nova NÃO pode ir crua no jsonBody; usar credential (ou, no mínimo, referência via $env/credential). Preferir credential."
+        - "plataforma-erp-stock: nó 'Valida X-Erp-Token' — comparar contra o valor rotacionado (S3) via credential/env, não literal"
+      criterio: "SELECT nodes::text ... LIKE '%cfed787%' OR LIKE '%IntegracoesRobo2026%' OR LIKE '%sec_erp_stock_84b729%' devolve 0 nos workflows vivos"
+    - id: N3
+      titulo: "Reexportar os workflows LIMPOS pro repo"
+      fazer:
+        - "Reexportar plataforma-eco-eventos e plataforma-erp-stock com os nós já usando credential"
+        - "Substituir os JSON em workflows/ que hoje têm segredo cru (workflows-fase4-wms.json, workflows-export-2026-09-03.json, workflows-export-2026-09-04.json, workflow-eco-eventos-2026-09-04-smtp-ativo.json)"
+        - "Confirmar no export: credential vira {id, name}, sem o valor"
+      criterio: "grep nos arquivos de workflows/ não acha nenhum dos 3 segredos"
+  armadilhas_n:
+    - "Editar workflow direto no DB exige o cache/reload do n8n — usar a UI ou o fluxo de import/update que a stack já documenta (gotcha do n8n: import desativa workflow; update exige restart — docs/n8n.md)"
+    - "Export feito ANTES de trocar pra credential ainda carrega o valor — reexportar só DEPOIS do N2"
+
+# ============================================================================
+# BRAÇO G — GIT (publicar a correção)
+# ============================================================================
+workstream_g_git:
+  passos:
+    - id: G1
+      titulo: "Commit da correção"
+      fazer:
+        - "Um commit em repos/integracoes com C1-C4 + N3 (workflows limpos) + este plano"
+        - "Mensagem: fix(seg): remove credenciais hardcoded (rotacionadas), migra p/ process.env e credential n8n"
+        - "NÃO incluir .env (é 600, gitignored — confirmar que continua ignorado)"
+      criterio: "git grep dos 3 segredos no working tree = 0"
+    - id: G2
+      titulo: "Push nos dois remotes"
+      fazer:
+        - "git push forgejo main && git push origin main"
+        - "origin recebe a6eaeb7 (pendente) JÁ corrigido em cima — confirmar que o tip público não tem segredo no working tree"
+      criterio: "git grep no origin/main e forgejo/main = 0 nos 3 segredos (no HEAD; histórico é o braço H)"
+  nota: "Push resolve o presente (HEAD limpo). O HISTÓRICO do GitHub ainda contém os segredos nos commits antigos — mas eles já estão rotacionados (braço R), então é lixo inofensivo. Reescrever histórico é o braço H, opcional."
+
+# ============================================================================
+# BRAÇO H — HISTÓRICO (OPCIONAL — decisão do fxlip, secundário à rotação)
+# ============================================================================
+workstream_h_historico:
+  quem: "fxlip decide (force-push reescreve história pública — irreversível pra quem já clonou)"
+  quando: "só DEPOIS de R concluído (rotação é o que protege; isto é só higiene)"
+  fazer:
+    - "git filter-repo (ou BFG) pra expurgar os 3 valores de TODO o histórico"
+    - "force-push nos dois remotes (git push --force) — combinar, reescreve SHAs"
+    - "Avisar que forks/clones/caches de commit órfão do GitHub podem reter os valores por um tempo — por isso a rotação é a proteção, não isto"
+  decisao_pendente:
+    - "Vale o custo de reescrever história pública? Com R feito, o ganho é cosmético. Recomendação: fazer só se o repo for referência pública que você não quer com segredo no log."
+  aviso: "NÃO force-pushar sem R concluído — deixaria uma janela onde o segredo saiu do log mas ainda é válido"
+
+# ============================================================================
+# BRAÇO V — VERIFICAÇÃO
+# ============================================================================
+workstream_v_verificacao:
+  - id: V1
+    titulo: "Grep global limpo"
+    fazer:
+      - "grep -rn 'cfed787415906be\\|14c92a149e624db\\|IntegracoesRobo2026\\|sec_erp_stock_84b729f01a8' repos/integracoes --exclude-dir=node_modules --exclude-dir=.git → 0 resultados"
+      - "Mesmo grep em origin/main e forgejo/main (git grep <sha>)"
+  - id: V2
+    titulo: "Pipeline funciona com os valores NOVOS"
+    fazer:
+      - "worker integracoes sobe e faz login no EverShop (senha nova) — testar createShopShipment num pedido de teste"
+      - "chamada ao ERP via n8n (credential nova) cria/lê Customer/Sales Order"
+      - "webhook ERP→loja (plataforma-erp-stock) passa com o token novo"
+  - id: V3
+    titulo: "Registro"
+    fazer:
+      - "Atualizar README.md (~/server) inventário de segredos: EVERSHOP_ADMIN_* novo no .env do stack integracoes"
+      - "Anotar no CLAUDE.md da stack integracoes o gotcha (segredo em script/export → sempre process.env/credential; padrão certo já existia e foi burlado)"
+      - "Se rodou H: registrar a reescrita de histórico no commit"
+
+# ============================================================================
+# O QUE CONFIRMAR COM O FXLIP ANTES DE EXECUTAR (decisões dele)
+# ============================================================================
+confirmar_com_fxlip:
+  - "Aprovar a rotação R1/R2/R3 (mexe em credencial viva de 3 integrações — quebra momentânea até .env/n8n atualizarem)"
+  - "Quer que eu execute a rotação (via bench/API/psql) ou prefere fazer manualmente pela UI?"
+  - "Braço H (reescrever histórico do GitHub): fazer ou deixar? (recomendação: opcional, secundário à rotação)"
+  - "Janela: R + C + N + G idealmente na mesma janela (evita worker/n8n quebrado com env dessincronizado)"
+
+# ============================================================================
+# O QUE NÃO FAZER
+# ============================================================================
+nao_fazer:
+  - "NÃO só remover o hardcode sem rotacionar — o valor já vazou, remover não protege"
+  - "NÃO deixar fallback `|| '<valor-real>'` no process.env (foi exatamente o erro original)"
+  - "NÃO reexportar workflow ANTES de trocar o nó pra credential (o export sairia com o segredo)"
+  - "NÃO commitar o .env (600, gitignored)"
+  - "NÃO force-pushar histórico (braço H) antes da rotação estar concluída"
+  - "NÃO cravar a senha nova do EverShop no jsonBody de nó n8n — vai em credential"

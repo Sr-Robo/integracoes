@@ -2,6 +2,17 @@ const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
 
+if (!process.env.ERPNEXT_API_KEY || !process.env.ERPNEXT_API_SECRET) {
+  throw new Error('ERPNEXT_API_KEY and ERPNEXT_API_SECRET environment variables are required');
+}
+
+const erpnextCredential = {
+  httpHeaderAuth: {
+    id: '5c84d711-e401-447a-8f19-38b8fa111111',
+    name: 'ERPNext API (integracoes)'
+  }
+};
+
 const exportPath = path.join(__dirname, '../workflows/workflows-export-2026-09-04.json');
 const data = JSON.parse(fs.readFileSync(exportPath, 'utf8'));
 
@@ -82,7 +93,6 @@ const putCustTaxIdNode = {
     sendHeaders: true,
     headerParameters: {
       parameters: [
-        { name: 'Authorization', value: 'token cfed787415906be:14c92a149e624db' },
         { name: 'Host', value: 'erp.robo.net.br' }
       ]
     },
@@ -91,6 +101,7 @@ const putCustTaxIdNode = {
     jsonBody: `{\n  "tax_id": "{{ $('Prepara Dados do Pedido').first().json.customerTaxId }}"\n}`,
     options: {}
   },
+  credentials: erpnextCredential,
   id: 'http-put-customer-tax-id',
   name: 'PUT Customer Tax ID',
   type: 'n8n-nodes-base.httpRequest',
@@ -329,6 +340,19 @@ eco.nodes = [
   httpGenLabelNode,
   logLabelNode
 ];
+
+eco.nodes.forEach(n => {
+  if (n.parameters?.headerParameters?.parameters) {
+    n.parameters.headerParameters.parameters = n.parameters.headerParameters.parameters.filter(
+      p => p.name !== 'Authorization'
+    );
+  }
+  if (n.type === 'n8n-nodes-base.httpRequest' && (n.parameters?.url || '').includes('erpnext-backend')) {
+    n.parameters.authentication = 'genericCredentialType';
+    n.parameters.genericAuthType = 'httpHeaderAuth';
+    n.credentials = erpnextCredential;
+  }
+});
 
 // Reconstruir conexões
 eco.connections['POST Customer no ERP'] = {

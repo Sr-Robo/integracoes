@@ -1,12 +1,162 @@
 [
   {
-    "updatedAt": "2026-09-04T03:01:29.851Z",
-    "createdAt": "2026-09-01T22:38:47.954Z",
-    "id": "e89e3a75-b4c1-4b77-983b-f11111111111",
-    "name": "plataforma-eco-eventos",
-    "description": null,
-    "active": true,
+    "name": "chamada-minima-7h",
+    "active": false,
+    "nodes": [
+      {
+        "parameters": {
+          "rule": {
+            "cronExpression": "0 0 7 * * *"
+          }
+        },
+        "id": "schedule-7h",
+        "name": "Todos os dias as 7h",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1,
+        "position": [
+          0,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "http://172.18.0.1:9001/webhook/n8n",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "{\"action\":\"usage\"}",
+          "options": {}
+        },
+        "id": "http-usage",
+        "name": "Puxa cota",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 3,
+        "position": [
+          250,
+          0
+        ],
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "abbfb058-3887-49b2-86a1-8efd115a3bb3",
+            "name": "Bot WhatsApp HMAC (endpoint n8n)"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "id": "cota-baixa",
+                "leftValue": "={{ $json[\"session_pct\"] }}",
+                "rightValue": 5,
+                "operator": {
+                  "type": "number",
+                  "operation": "lte"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "id": "if-cota",
+        "name": "Cota baixa?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.1,
+        "position": [
+          500,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "http://whatsapp:3000/api/sendText",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "{\n  \"session\": \"default\",\n  \"chatId\": \"135038301675705@lid\",\n  \"text\": \"Bom dia! A sessão tá com 0% — ótima hora pra trabalhar.\"\n}",
+          "options": {}
+        },
+        "id": "http-waha",
+        "name": "Envia bom dia",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 3,
+        "position": [
+          750,
+          0
+        ],
+        "credentials": {
+          "wahaApi": {
+            "id": "68f1e464-4132-4053-8dbd-5196ec3d7a83",
+            "name": "WAHA API key"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Todos os dias as 7h": {
+        "main": [
+          [
+            {
+              "node": "Puxa cota",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Puxa cota": {
+        "main": [
+          [
+            {
+              "node": "Cota baixa?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Cota baixa?": {
+        "main": [
+          [
+            {
+              "node": "Envia bom dia",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          []
+        ]
+      }
+    },
+    "createdAt": "2026-07-31T15:22:35.454+00:00",
+    "updatedAt": "2026-08-02T21:07:25+00:00",
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "staticData": null,
+    "pinData": {},
+    "versionId": "b71bffae-9ed2-4bcc-a709-b57ca73e4e6e",
+    "triggerCount": 1,
+    "id": "b2d10997-f7f2-48f9-a95c-baa7f3d26a84",
+    "meta": null,
+    "parentFolderId": null,
     "isArchived": false,
+    "versionCounter": 17,
+    "description": null,
+    "activeVersionId": null,
+    "nodeGroups": [],
+    "sourceWorkflowId": null
+  },
+  {
+    "name": "plataforma-eco-eventos",
+    "active": true,
     "nodes": [
       {
         "parameters": {
@@ -34,12 +184,12 @@
                   "options": {
                     "caseSensitive": true,
                     "leftValue": "",
-                    "typeValidation": "strict"
+                    "typeValidation": "loose"
                   },
                   "conditions": [
                     {
                       "id": "switch-order-placed",
-                      "leftValue": "={{ $json.headers?.['x-event-type'] || $json.headers?.['ce-type'] || $json.body?.event_type || $json.body?.type || $json.event_type || $json.type }}",
+                      "leftValue": "={{ $json.event_type }}",
                       "rightValue": "order.placed",
                       "operator": {
                         "type": "string",
@@ -55,13 +205,34 @@
                   "options": {
                     "caseSensitive": true,
                     "leftValue": "",
-                    "typeValidation": "strict"
+                    "typeValidation": "loose"
                   },
                   "conditions": [
                     {
                       "id": "switch-order-paid",
-                      "leftValue": "={{ $json.headers?.['x-event-type'] || $json.headers?.['ce-type'] || $json.body?.event_type || $json.body?.type || $json.event_type || $json.type }}",
+                      "leftValue": "={{ $json.event_type }}",
                       "rightValue": "order.paid",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "loose"
+                  },
+                  "conditions": [
+                    {
+                      "id": "switch-order-shipped",
+                      "leftValue": "={{ $json.event_type }}",
+                      "rightValue": "order.shipped",
                       "operator": {
                         "type": "string",
                         "operation": "equals"
@@ -120,16 +291,14 @@
           "headerParameters": {
             "parameters": [
               {
-                "name": "Authorization",
-                "value": "token cfed787415906be:14c92a149e624db"
-              },
-              {
                 "name": "Host",
                 "value": "erp.robo.net.br"
               }
             ]
           },
-          "options": {}
+          "options": {},
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth"
         },
         "id": "http-check-customer",
         "name": "GET Customer no ERP",
@@ -138,7 +307,13 @@
         "position": [
           860,
           180
-        ]
+        ],
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "5c84d711-e401-447a-8f19-38b8fa111111",
+            "name": "ERPNext API (integracoes)"
+          }
+        }
       },
       {
         "parameters": {
@@ -180,10 +355,6 @@
           "headerParameters": {
             "parameters": [
               {
-                "name": "Authorization",
-                "value": "token cfed787415906be:14c92a149e624db"
-              },
-              {
                 "name": "Host",
                 "value": "erp.robo.net.br"
               }
@@ -192,7 +363,9 @@
           "sendBody": true,
           "specifyBody": "json",
           "jsonBody": "={{ JSON.stringify({\n  customer_name: $('Prepara Dados do Pedido').first().json.customerName,\n  customer_type: 'Individual',\n  customer_group: 'Individual',\n  territory: 'Brazil',\n  tax_id: $('Prepara Dados do Pedido').first().json.customerTaxId,\n  custom_external_id: $('Prepara Dados do Pedido').first().json.customerKey\n}) }}",
-          "options": {}
+          "options": {},
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth"
         },
         "id": "http-create-customer",
         "name": "POST Customer no ERP",
@@ -201,7 +374,13 @@
         "position": [
           1300,
           100
-        ]
+        ],
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "5c84d711-e401-447a-8f19-38b8fa111111",
+            "name": "ERPNext API (integracoes)"
+          }
+        }
       },
       {
         "parameters": {
@@ -224,16 +403,14 @@
           "headerParameters": {
             "parameters": [
               {
-                "name": "Authorization",
-                "value": "token cfed787415906be:14c92a149e624db"
-              },
-              {
                 "name": "Host",
                 "value": "erp.robo.net.br"
               }
             ]
           },
-          "options": {}
+          "options": {},
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth"
         },
         "id": "http-check-sales-order",
         "name": "GET Sales Order no ERP",
@@ -242,7 +419,13 @@
         "position": [
           1740,
           180
-        ]
+        ],
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "5c84d711-e401-447a-8f19-38b8fa111111",
+            "name": "ERPNext API (integracoes)"
+          }
+        }
       },
       {
         "parameters": {
@@ -284,10 +467,6 @@
           "headerParameters": {
             "parameters": [
               {
-                "name": "Authorization",
-                "value": "token cfed787415906be:14c92a149e624db"
-              },
-              {
                 "name": "Host",
                 "value": "erp.robo.net.br"
               }
@@ -296,7 +475,9 @@
           "sendBody": true,
           "specifyBody": "json",
           "jsonBody": "={{ JSON.stringify({\n  customer: $('Resolve Customer Name').first().json.resolvedCustomerName,\n  transaction_date: $('Resolve Customer Name').first().json.occurredAt,\n  delivery_date: $('Resolve Customer Name').first().json.occurredAt,\n  currency: 'BRL',\n  company: 'Sr Robo',\n  custom_external_order_id: $('Resolve Customer Name').first().json.orderNumber,\n  items: $('Resolve Customer Name').first().json.items\n}) }}",
-          "options": {}
+          "options": {},
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth"
         },
         "id": "http-create-sales-order",
         "name": "POST Sales Order no ERP",
@@ -305,7 +486,13 @@
         "position": [
           2180,
           100
-        ]
+        ],
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "5c84d711-e401-447a-8f19-38b8fa111111",
+            "name": "ERPNext API (integracoes)"
+          }
+        }
       },
       {
         "parameters": {
@@ -328,10 +515,6 @@
           "headerParameters": {
             "parameters": [
               {
-                "name": "Authorization",
-                "value": "token cfed787415906be:14c92a149e624db"
-              },
-              {
                 "name": "Host",
                 "value": "erp.robo.net.br"
               }
@@ -340,7 +523,9 @@
           "sendBody": true,
           "specifyBody": "json",
           "jsonBody": "={{ JSON.stringify({\n  tax_id: $('Prepara Dados do Pedido').first().json.customerTaxId\n}) }}",
-          "options": {}
+          "options": {},
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth"
         },
         "id": "http-put-customer-tax-id",
         "name": "PUT Customer Tax ID",
@@ -349,7 +534,13 @@
         "position": [
           1420,
           100
-        ]
+        ],
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "5c84d711-e401-447a-8f19-38b8fa111111",
+            "name": "ERPNext API (integracoes)"
+          }
+        }
       },
       {
         "parameters": {
@@ -407,6 +598,383 @@
           1080,
           600
         ]
+      },
+      {
+        "parameters": {
+          "fromEmail": "noreply@robo.net.br",
+          "toEmail": "={{ $json.to }}",
+          "subject": "={{ $json.subject }}",
+          "emailFormat": "html",
+          "html": "={{ $json.html }}",
+          "options": {
+            "replyTo": "sr@robo.net.br"
+          }
+        },
+        "type": "n8n-nodes-base.emailSend",
+        "typeVersion": 2.1,
+        "position": [
+          2720,
+          100
+        ],
+        "name": "Enviar E-mail (SMTP)",
+        "credentials": {
+          "smtp": {
+            "id": "0c8aa506-4e90-4c1d-ba58-8d6b22a97fb1",
+            "name": "SMTP forwardemail (noreply)"
+          }
+        },
+        "id": "c9b30fa8-4943-4661-81d4-1d528835078b",
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "jsCode": "const raw = $input.first().json;\nlet body = raw.body;\nif (!body && raw.binary && raw.binary.data) {\n  try {\n    const buf = Buffer.from(raw.binary.data.data, 'base64');\n    body = JSON.parse(buf.toString('utf-8'));\n  } catch (e) {}\n} else if (typeof body === 'string') {\n  try {\n    body = JSON.parse(body);\n  } catch (e) {}\n}\nbody = body || {};\n\nconst headers = raw.headers || {};\nconst event_type = headers['x-event-type'] || headers['ce-type'] || body.event_type || body.type || raw.event_type || raw.type || '';\n\nreturn [{\n  json: {\n    ...raw,\n    body,\n    headers,\n    event_type\n  }\n}];"
+        },
+        "id": "code-normalize-event",
+        "name": "Normaliza Evento",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          420,
+          450
+        ]
+      },
+      {
+        "parameters": {
+          "method": "GET",
+          "url": "=http://erpnext-backend:8000/api/resource/Sales%20Order?filters=[[\"custom_external_order_id\",\"=\",\"{{ $('Prepara Dados Etiqueta').first().json.order_number }}\"]]&fields=[\"name\",\"docstatus\",\"per_billed\",\"status\"]",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Host",
+                "value": "erp.robo.net.br"
+              }
+            ]
+          },
+          "options": {},
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth"
+        },
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "5c84d711-e401-447a-8f19-38b8fa111111",
+            "name": "ERPNext API (integracoes)"
+          }
+        },
+        "id": "http-get-so-invoicing",
+        "name": "GET Sales Order p/ Faturar",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 3,
+        "position": [
+          1300,
+          600
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose"
+            },
+            "conditions": [
+              {
+                "id": "check-so-exists",
+                "leftValue": "={{ Number(($json.data || []).length) }}",
+                "rightValue": 1,
+                "operator": {
+                  "type": "number",
+                  "operation": "gte"
+                }
+              },
+              {
+                "id": "check-per-billed",
+                "leftValue": "={{ Number(($json.data && $json.data[0] ? $json.data[0].per_billed : 0) || 0) }}",
+                "rightValue": 100,
+                "operator": {
+                  "type": "number",
+                  "operation": "lt"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "id": "if-so-needs-invoice",
+        "name": "SO Existe e Não Faturado?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.1,
+        "position": [
+          1520,
+          600
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const getSoData = $('GET Sales Order p/ Faturar').first().json.data[0];\nreturn [{\n  json: {\n    so_name: getSoData.name,\n    docstatus: getSoData.docstatus,\n    order_number: $('Prepara Dados Etiqueta').first().json.order_number\n  }\n}];"
+        },
+        "id": "code-prep-invoice-call",
+        "name": "Prepara Chamada Faturamento",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1740,
+          500
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose"
+            },
+            "conditions": [
+              {
+                "id": "check-so-draft",
+                "leftValue": "={{ Number($json.docstatus) }}",
+                "rightValue": 0,
+                "operator": {
+                  "type": "number",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "id": "if-so-draft",
+        "name": "SO em Rascunho?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.1,
+        "position": [
+          1960,
+          500
+        ]
+      },
+      {
+        "parameters": {
+          "method": "PUT",
+          "url": "=http://erpnext-backend:8000/api/resource/Sales%20Order/{{ encodeURIComponent($json.so_name) }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Host",
+                "value": "erp.robo.net.br"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "{\n  \"docstatus\": 1\n}",
+          "options": {},
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth"
+        },
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "5c84d711-e401-447a-8f19-38b8fa111111",
+            "name": "ERPNext API (integracoes)"
+          }
+        },
+        "id": "http-submit-so",
+        "name": "Submit Sales Order",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 3,
+        "position": [
+          2180,
+          420
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "http://erpnext-backend:8000/api/method/erpnext.selling.doctype.sales_order.sales_order.make_sales_invoice",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Host",
+                "value": "erp.robo.net.br"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"source_name\": \"{{ $json.so_name || $json.data?.name || $('Prepara Chamada Faturamento').first().json.so_name }}\"\n}",
+          "options": {},
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth"
+        },
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "5c84d711-e401-447a-8f19-38b8fa111111",
+            "name": "ERPNext API (integracoes)"
+          }
+        },
+        "id": "http-make-sales-invoice",
+        "name": "Method make_sales_invoice",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 3,
+        "position": [
+          2400,
+          500
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const invDoc = $input.first().json.message;\n// Regra de ouro da Fase 4: update_stock=0 SEMPRE na Sales Invoice (a baixa real nasce na Delivery Note)\ninvDoc.update_stock = 0;\nreturn [{\n  json: invDoc\n}];"
+        },
+        "id": "code-prep-invoice-doc",
+        "name": "Garante update_stock=0",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2620,
+          500
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "http://erpnext-backend:8000/api/resource/Sales%20Invoice",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Host",
+                "value": "erp.robo.net.br"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify($json) }}",
+          "options": {},
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth"
+        },
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "5c84d711-e401-447a-8f19-38b8fa111111",
+            "name": "ERPNext API (integracoes)"
+          }
+        },
+        "id": "http-create-sales-invoice",
+        "name": "POST Sales Invoice",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 3,
+        "position": [
+          2840,
+          500
+        ]
+      },
+      {
+        "parameters": {
+          "method": "PUT",
+          "url": "=http://erpnext-backend:8000/api/resource/Sales%20Invoice/{{ encodeURIComponent($json.data.name) }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Host",
+                "value": "erp.robo.net.br"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "{\n  \"docstatus\": 1\n}",
+          "options": {},
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth"
+        },
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "5c84d711-e401-447a-8f19-38b8fa111111",
+            "name": "ERPNext API (integracoes)"
+          }
+        },
+        "id": "http-submit-sales-invoice",
+        "name": "Submit Sales Invoice",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 3,
+        "position": [
+          3060,
+          500
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "console.log(`[Faturamento] Sales Invoice ${$json.data.name} criada e submetida com sucesso para o pedido #${$('Prepara Chamada Faturamento').first().json.order_number}.`);\nreturn $input.all();"
+        },
+        "id": "code-log-invoice-success",
+        "name": "Log Faturamento Concluído",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          3280,
+          500
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "console.log('[Faturamento] Pedido já faturado ou Sales Order inexistente. Replay ignorado com sucesso (idempotente).');\nreturn $input.all();"
+        },
+        "id": "code-log-invoice-skip",
+        "name": "Log Faturamento Já Feito (No-op)",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1740,
+          700
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const webhookData = $('Webhook Eventos').first().json;\nconst event = webhookData.body ? webhookData.body : webhookData;\nconst payload = event.data || event.payload || event;\n\nconst orderNumber = payload.order_number || '0';\nconst trackingCode = payload.tracking_code || 'SEM-RASTREIO';\nconst carrier = payload.carrier || 'Correios';\n\nconst html = `\n<!DOCTYPE html>\n<html>\n<head><meta charset=\"utf-8\"><title>Pedido #${orderNumber} Despachado</title></head>\n<body style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0d0f12; color: #e2e8f0; margin: 0; padding: 20px;\">\n  <div style=\"max-width: 600px; margin: 0 auto; background-color: #161a22; border: 1px solid #00f0ff; border-radius: 8px; padding: 24px;\">\n    <div style=\"text-align: center; border-bottom: 1px solid #2d3748; padding-bottom: 16px; margin-bottom: 20px;\">\n      <h1 style=\"color: #00f0ff; margin: 0; font-size: 24px; letter-spacing: 1px;\">SR. ROBÔ</h1>\n      <p style=\"color: #a0aec0; margin: 4px 0 0 0;\">Pedido #${orderNumber} a caminho!</p>\n    </div>\n    \n    <p>Olá!</p>\n    <p>O seu pedido <strong>#${orderNumber}</strong> foi separado, embalado e despachado para entrega com sucesso.</p>\n    \n    <div style=\"background-color: #1f242e; border: 1px solid #00f0ff; padding: 16px; border-radius: 6px; margin: 20px 0; text-align: center;\">\n      <p style=\"color: #a0aec0; margin: 0 0 8px 0; font-size: 14px;\">CÓDIGO DE RASTREAMENTO</p>\n      <p style=\"font-family: monospace; font-size: 22px; font-weight: bold; color: #00f0ff; letter-spacing: 2px; margin: 0 0 8px 0;\">${trackingCode}</p>\n      <p style=\"color: #718096; margin: 0; font-size: 13px;\">Transportadora: <strong>${carrier}</strong></p>\n    </div>\n    \n    <p style=\"color: #a0aec0; font-size: 14px;\">Você pode acompanhar o rastreio diretamente no site da transportadora.</p>\n    \n    <div style=\"margin-top: 32px; border-top: 1px solid #2d3748; padding-top: 16px; font-size: 12px; color: #718096; text-align: center;\">\n      <p>Sr. Robô E-commerce &bull; https://sr.robo.net.br</p>\n      <p>Este é um e-mail transacional automático via ForwardEmail.</p>\n    </div>\n  </div>\n</body>\n</html>`;\n\nconsole.log(`[Email Rastreio] E-mail de rastreio para pedido #${orderNumber} montado com tracking ${trackingCode}.`);\nreturn [{\n  json: {\n    to: 'cliente@robo.net.br',\n    subject: `[Sr. Robô] Seu pedido #${orderNumber} foi enviado! (Rastreio ${trackingCode})`,\n    html,\n    orderNumber,\n    trackingCode\n  }\n}];"
+        },
+        "id": "code-prep-tracking-email",
+        "name": "Prepara E-mail de Rastreio",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          640,
+          900
+        ]
+      },
+      {
+        "parameters": {
+          "fromEmail": "noreply@robo.net.br",
+          "toEmail": "={{ $json.to }}",
+          "subject": "={{ $json.subject }}",
+          "emailFormat": "html",
+          "html": "={{ $json.html }}",
+          "options": {
+            "replyTo": "sr@robo.net.br"
+          }
+        },
+        "id": "send-tracking-email",
+        "name": "Enviar E-mail Rastreio (SMTP)",
+        "type": "n8n-nodes-base.emailSend",
+        "typeVersion": 2.1,
+        "position": [
+          860,
+          900
+        ],
+        "onError": "continueRegularOutput",
+        "credentials": {
+          "smtp": {
+            "id": "0c8aa506-4e90-4c1d-ba58-8d6b22a97fb1",
+            "name": "SMTP forwardemail (noreply)"
+          }
+        }
       }
     ],
     "connections": {
@@ -414,7 +982,7 @@
         "main": [
           [
             {
-              "node": "Switch Event Type",
+              "node": "Normaliza Evento",
               "type": "main",
               "index": 0
             }
@@ -432,14 +1000,21 @@
           ],
           [
             {
-              "node": "Log Outros Eventos",
+              "node": "Prepara Dados Etiqueta",
               "type": "main",
               "index": 0
             }
           ],
           [
             {
-              "node": "Prepara Dados Etiqueta",
+              "node": "Prepara E-mail de Rastreio",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Log Outros Eventos",
               "type": "main",
               "index": 0
             }
@@ -580,8 +1155,167 @@
             }
           ]
         ]
+      },
+      "E-mail Transacional": {
+        "main": [
+          [
+            {
+              "node": "Enviar E-mail (SMTP)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Log Etiqueta Emitida": {
+        "main": [
+          [
+            {
+              "node": "GET Sales Order p/ Faturar",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "GET Sales Order p/ Faturar": {
+        "main": [
+          [
+            {
+              "node": "SO Existe e Não Faturado?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "SO Existe e Não Faturado?": {
+        "main": [
+          [
+            {
+              "node": "Prepara Chamada Faturamento",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Log Faturamento Já Feito (No-op)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepara Chamada Faturamento": {
+        "main": [
+          [
+            {
+              "node": "SO em Rascunho?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "SO em Rascunho?": {
+        "main": [
+          [
+            {
+              "node": "Submit Sales Order",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Method make_sales_invoice",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Submit Sales Order": {
+        "main": [
+          [
+            {
+              "node": "Method make_sales_invoice",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Method make_sales_invoice": {
+        "main": [
+          [
+            {
+              "node": "Garante update_stock=0",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Garante update_stock=0": {
+        "main": [
+          [
+            {
+              "node": "POST Sales Invoice",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "POST Sales Invoice": {
+        "main": [
+          [
+            {
+              "node": "Submit Sales Invoice",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Submit Sales Invoice": {
+        "main": [
+          [
+            {
+              "node": "Log Faturamento Concluído",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepara E-mail de Rastreio": {
+        "main": [
+          [
+            {
+              "node": "Enviar E-mail Rastreio (SMTP)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Normaliza Evento": {
+        "main": [
+          [
+            {
+              "node": "Switch Event Type",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
       }
     },
+    "createdAt": "2026-09-01T22:38:47.954+00:00",
+    "updatedAt": "2026-09-05T02:28:53.904+00:00",
     "settings": {
       "executionOrder": "v1",
       "saveDataErrorExecution": "all",
@@ -590,48 +1324,232 @@
       "saveManualExecutions": true
     },
     "staticData": null,
-    "meta": null,
-    "nodeGroups": [],
     "pinData": null,
-    "versionId": "804fbbcf-66b1-426b-af02-a09468071145",
-    "activeVersionId": "804fbbcf-66b1-426b-af02-a09468071145",
-    "versionCounter": 3,
+    "versionId": "0d880446-a340-4dfe-893a-0663a2c25961",
     "triggerCount": 1,
-    "sourceWorkflowId": null,
-    "tags": [],
-    "shared": [
-      {
-        "updatedAt": "2026-09-01T22:38:47.954Z",
-        "createdAt": "2026-09-01T22:38:47.954Z",
-        "role": "workflow:owner",
-        "workflowId": "e89e3a75-b4c1-4b77-983b-f11111111111",
-        "projectId": "RPUtWydoqlM8wfCo",
-        "project": {
-          "updatedAt": "2026-09-01T22:12:18.790Z",
-          "createdAt": "2026-09-01T22:12:18.790Z",
-          "id": "RPUtWydoqlM8wfCo",
-          "name": "Unnamed Project",
-          "type": "personal",
-          "icon": null,
-          "description": null,
-          "customTelemetryTags": [],
-          "creatorId": "59b8f998-0f28-4a2a-8556-0839111a1005"
-        }
-      }
-    ],
-    "versionMetadata": {
-      "name": null,
-      "description": null
-    }
+    "id": "e89e3a75-b4c1-4b77-983b-f11111111111",
+    "meta": null,
+    "parentFolderId": null,
+    "isArchived": false,
+    "versionCounter": 10,
+    "description": null,
+    "activeVersionId": "0d880446-a340-4dfe-893a-0663a2c25961",
+    "nodeGroups": [],
+    "sourceWorkflowId": null
   },
   {
-    "updatedAt": "2026-09-04T02:58:13.253Z",
-    "createdAt": "2026-09-04T02:52:34.143Z",
-    "id": "e89e3a75-b4c1-4b77-983b-f22222222222",
-    "name": "plataforma-erp-stock",
-    "description": null,
+    "name": "plataforma-erp-dn",
     "active": true,
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "erp-dn",
+          "responseMode": "onReceived",
+          "options": {}
+        },
+        "id": "webhook-erp-dn",
+        "name": "Webhook ERP Delivery Note",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          200,
+          300
+        ],
+        "webhookId": "plataforma-erp-dn"
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "id": "check-token",
+                "leftValue": "={{ $json.headers[\"x-erp-token\"] }}",
+                "rightValue": "={{ $env.ERP_STOCK_WEBHOOK_SECRET }}",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "id": "if-valid-token-dn",
+        "name": "Valida X-Erp-Token",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.1,
+        "position": [
+          420,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const webhookItem = $('Webhook ERP Delivery Note').first();\nlet rawPayload = webhookItem.json.body;\n\nif (!rawPayload && webhookItem.binary && webhookItem.binary.data) {\n  const buf = Buffer.from(webhookItem.binary.data.data, 'base64');\n  rawPayload = JSON.parse(buf.toString('utf-8'));\n} else if (typeof rawPayload === 'string') {\n  rawPayload = JSON.parse(rawPayload);\n}\n\nconst items = rawPayload.items || [];\nlet soName = '';\nfor (const item of items) {\n  if (item.against_sales_order) {\n    soName = item.against_sales_order;\n    break;\n  }\n}\n\nreturn [{\n  json: {\n    delivery_note: rawPayload.delivery_note,\n    customer: rawPayload.customer,\n    tracking_no: rawPayload.tracking_no || 'BR-RASTREIO-PADRAO',\n    so_name: soName,\n    items\n  }\n}];"
+        },
+        "id": "code-prep-dn-data",
+        "name": "Prepara Dados DN",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          640,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth",
+          "method": "GET",
+          "url": "=http://erpnext-backend:8000/api/resource/Sales%20Order/{{ encodeURIComponent($json.so_name) }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Host",
+                "value": "erp.robo.net.br"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "5c84d711-e401-447a-8f19-38b8fa111111",
+            "name": "ERPNext API (integracoes)"
+          }
+        },
+        "id": "http-get-so-for-dn",
+        "name": "GET Sales Order no ERP",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 3,
+        "position": [
+          860,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "http://integracoes:9999/shop/create-shipment",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"order_number\": \"{{ $json.data.custom_external_order_id }}\",\n  \"tracking_code\": \"{{ $('Prepara Dados DN').first().json.tracking_no }}\",\n  \"carrier\": \"custom\"\n}",
+          "options": {}
+        },
+        "id": "http-call-create-shipment",
+        "name": "Worker Cria Shipment na Loja",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 3,
+        "position": [
+          1080,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "console.log('[Shipment Loja] Shipment criado com sucesso via Worker:', JSON.stringify($json, null, 2));\nreturn $input.all();"
+        },
+        "id": "code-log-shipment-created",
+        "name": "Log Shipment Criado",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1300,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Webhook ERP Delivery Note": {
+        "main": [
+          [
+            {
+              "node": "Valida X-Erp-Token",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Valida X-Erp-Token": {
+        "main": [
+          [
+            {
+              "node": "Prepara Dados DN",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepara Dados DN": {
+        "main": [
+          [
+            {
+              "node": "GET Sales Order no ERP",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "GET Sales Order no ERP": {
+        "main": [
+          [
+            {
+              "node": "Worker Cria Shipment na Loja",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Worker Cria Shipment na Loja": {
+        "main": [
+          [
+            {
+              "node": "Log Shipment Criado",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "createdAt": "2026-09-04T18:35:38.719+00:00",
+    "updatedAt": "2026-09-05T02:28:53.966+00:00",
+    "settings": {
+      "executionOrder": "v1",
+      "saveDataErrorExecution": "all",
+      "saveDataSuccessExecution": "all",
+      "saveExecutionProgress": true,
+      "saveManualExecutions": true
+    },
+    "staticData": null,
+    "pinData": null,
+    "versionId": "77ede787-4cbf-464b-b372-0fb08938b0e9",
+    "triggerCount": 1,
+    "id": "e89e3a75-b4c1-4b77-983b-f33333333333",
+    "meta": null,
+    "parentFolderId": null,
     "isArchived": false,
+    "versionCounter": 3,
+    "description": "Gera Shipment no EverShop a partir da Delivery Note do ERPNext (Fase 4 - W4)",
+    "activeVersionId": "77ede787-4cbf-464b-b372-0fb08938b0e9",
+    "nodeGroups": [],
+    "sourceWorkflowId": null
+  },
+  {
+    "name": "plataforma-erp-stock",
+    "active": true,
     "nodes": [
       {
         "parameters": {
@@ -662,7 +1580,7 @@
               {
                 "id": "check-token",
                 "leftValue": "={{ $json.headers['x-erp-token'] }}",
-                "rightValue": "sec_erp_stock_84b729f01a8",
+                "rightValue": "={{ $env.ERP_STOCK_WEBHOOK_SECRET }}",
                 "operator": {
                   "type": "string",
                   "operation": "equals"
@@ -719,7 +1637,7 @@
           "url": "http://ecommerce_evershop:3000/api/user/tokens",
           "sendBody": true,
           "specifyBody": "json",
-          "jsonBody": "={\n  \"email\": \"integracoes@robo.net.br\",\n  \"password\": \"IntegracoesRobo2026!Sec\"\n}",
+          "jsonBody": "={\\n  \"email\": \"{{ $env.EVERSHOP_ADMIN_EMAIL }}\",\\n  \"password\": \"{{ $env.EVERSHOP_ADMIN_PASSWORD }}\"\\n}",
           "options": {}
         },
         "id": "http-login-shop",
@@ -816,6 +1734,8 @@
         ]
       }
     },
+    "createdAt": "2026-09-04T02:52:34.143+00:00",
+    "updatedAt": "2026-09-05T02:24:38.433+00:00",
     "settings": {
       "executionOrder": "v1",
       "saveDataErrorExecution": "all",
@@ -824,217 +1744,17 @@
       "saveManualExecutions": true
     },
     "staticData": null,
-    "meta": null,
-    "nodeGroups": [],
     "pinData": null,
-    "versionId": "47dc592d-17d7-43c0-8bef-02a53bf29c33",
-    "activeVersionId": "47dc592d-17d7-43c0-8bef-02a53bf29c33",
-    "versionCounter": 3,
+    "versionId": "f14d31cc-3167-4589-a99f-dff746254d9a",
     "triggerCount": 1,
-    "sourceWorkflowId": null,
-    "tags": [],
-    "shared": [
-      {
-        "updatedAt": "2026-09-04T02:52:34.143Z",
-        "createdAt": "2026-09-04T02:52:34.143Z",
-        "role": "workflow:owner",
-        "workflowId": "e89e3a75-b4c1-4b77-983b-f22222222222",
-        "projectId": "RPUtWydoqlM8wfCo",
-        "project": {
-          "updatedAt": "2026-09-01T22:12:18.790Z",
-          "createdAt": "2026-09-01T22:12:18.790Z",
-          "id": "RPUtWydoqlM8wfCo",
-          "name": "Unnamed Project",
-          "type": "personal",
-          "icon": null,
-          "description": null,
-          "customTelemetryTags": [],
-          "creatorId": "59b8f998-0f28-4a2a-8556-0839111a1005"
-        }
-      }
-    ],
-    "versionMetadata": {
-      "name": null,
-      "description": null
-    }
-  },
-  {
-    "updatedAt": "2026-08-02T21:07:25.000Z",
-    "createdAt": "2026-07-31T15:22:35.454Z",
-    "id": "b2d10997-f7f2-48f9-a95c-baa7f3d26a84",
-    "name": "chamada-minima-7h",
-    "description": null,
-    "active": true,
-    "isArchived": false,
-    "nodes": [
-      {
-        "parameters": {
-          "rule": {
-            "cronExpression": "0 0 7 * * *"
-          }
-        },
-        "id": "schedule-7h",
-        "name": "Todos os dias as 7h",
-        "type": "n8n-nodes-base.scheduleTrigger",
-        "typeVersion": 1,
-        "position": [
-          0,
-          0
-        ]
-      },
-      {
-        "parameters": {
-          "method": "POST",
-          "url": "http://172.18.0.1:9001/webhook/n8n",
-          "sendBody": true,
-          "specifyBody": "json",
-          "jsonBody": "{\"action\":\"usage\"}",
-          "options": {}
-        },
-        "id": "http-usage",
-        "name": "Puxa cota",
-        "type": "n8n-nodes-base.httpRequest",
-        "typeVersion": 3,
-        "position": [
-          250,
-          0
-        ],
-        "credentials": {
-          "httpHeaderAuth": {
-            "id": "abbfb058-3887-49b2-86a1-8efd115a3bb3",
-            "name": "Bot WhatsApp HMAC (endpoint n8n)"
-          }
-        }
-      },
-      {
-        "parameters": {
-          "conditions": {
-            "options": {
-              "caseSensitive": true,
-              "leftValue": "",
-              "typeValidation": "strict"
-            },
-            "conditions": [
-              {
-                "id": "cota-baixa",
-                "leftValue": "={{ $json[\"session_pct\"] }}",
-                "rightValue": 5,
-                "operator": {
-                  "type": "number",
-                  "operation": "lte"
-                }
-              }
-            ],
-            "combinator": "and"
-          },
-          "options": {}
-        },
-        "id": "if-cota",
-        "name": "Cota baixa?",
-        "type": "n8n-nodes-base.if",
-        "typeVersion": 2.1,
-        "position": [
-          500,
-          0
-        ]
-      },
-      {
-        "parameters": {
-          "method": "POST",
-          "url": "http://whatsapp:3000/api/sendText",
-          "sendBody": true,
-          "specifyBody": "json",
-          "jsonBody": "{\n  \"session\": \"default\",\n  \"chatId\": \"135038301675705@lid\",\n  \"text\": \"Bom dia! A sessão tá com 0% — ótima hora pra trabalhar.\"\n}",
-          "options": {}
-        },
-        "id": "http-waha",
-        "name": "Envia bom dia",
-        "type": "n8n-nodes-base.httpRequest",
-        "typeVersion": 3,
-        "position": [
-          750,
-          0
-        ],
-        "credentials": {
-          "wahaApi": {
-            "id": "68f1e464-4132-4053-8dbd-5196ec3d7a83",
-            "name": "WAHA API key"
-          }
-        }
-      }
-    ],
-    "connections": {
-      "Todos os dias as 7h": {
-        "main": [
-          [
-            {
-              "node": "Puxa cota",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Puxa cota": {
-        "main": [
-          [
-            {
-              "node": "Cota baixa?",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Cota baixa?": {
-        "main": [
-          [
-            {
-              "node": "Envia bom dia",
-              "type": "main",
-              "index": 0
-            }
-          ],
-          []
-        ]
-      }
-    },
-    "settings": {
-      "executionOrder": "v1"
-    },
-    "staticData": null,
+    "id": "e89e3a75-b4c1-4b77-983b-f22222222222",
     "meta": null,
+    "parentFolderId": null,
+    "isArchived": false,
+    "versionCounter": 4,
+    "description": null,
+    "activeVersionId": "f14d31cc-3167-4589-a99f-dff746254d9a",
     "nodeGroups": [],
-    "pinData": {},
-    "versionId": "8e687a50-56ba-4863-a8f4-3ac72ee0383d",
-    "activeVersionId": "8e687a50-56ba-4863-a8f4-3ac72ee0383d",
-    "versionCounter": 17,
-    "triggerCount": 1,
-    "sourceWorkflowId": null,
-    "tags": [],
-    "shared": [
-      {
-        "updatedAt": "2026-09-01T22:12:50.444Z",
-        "createdAt": "2026-09-01T22:12:50.444Z",
-        "role": "workflow:owner",
-        "workflowId": "b2d10997-f7f2-48f9-a95c-baa7f3d26a84",
-        "projectId": "RPUtWydoqlM8wfCo",
-        "project": {
-          "updatedAt": "2026-09-01T22:12:18.790Z",
-          "createdAt": "2026-09-01T22:12:18.790Z",
-          "id": "RPUtWydoqlM8wfCo",
-          "name": "Unnamed Project",
-          "type": "personal",
-          "icon": null,
-          "description": null,
-          "customTelemetryTags": [],
-          "creatorId": "59b8f998-0f28-4a2a-8556-0839111a1005"
-        }
-      }
-    ],
-    "versionMetadata": {
-      "name": null,
-      "description": null
-    }
+    "sourceWorkflowId": null
   }
 ]

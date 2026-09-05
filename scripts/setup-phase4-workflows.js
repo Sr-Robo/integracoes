@@ -2,6 +2,20 @@ const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
 
+if (!process.env.ERPNEXT_API_KEY || !process.env.ERPNEXT_API_SECRET) {
+  throw new Error('ERPNEXT_API_KEY and ERPNEXT_API_SECRET environment variables are required');
+}
+if (!process.env.ERP_STOCK_WEBHOOK_SECRET) {
+  throw new Error('ERP_STOCK_WEBHOOK_SECRET environment variable is required');
+}
+
+const erpnextCredential = {
+  httpHeaderAuth: {
+    id: '5c84d711-e401-447a-8f19-38b8fa111111',
+    name: 'ERPNext API (integracoes)'
+  }
+};
+
 const ecoId = 'e89e3a75-b4c1-4b77-983b-f11111111111';
 const dnId = 'e89e3a75-b4c1-4b77-983b-f33333333333';
 
@@ -109,12 +123,12 @@ const httpGetSoInvoicing = {
     sendHeaders: true,
     headerParameters: {
       parameters: [
-        { name: 'Authorization', value: 'token cfed787415906be:14c92a149e624db' },
         { name: 'Host', value: 'erp.robo.net.br' }
       ]
     },
     options: {}
   },
+  credentials: erpnextCredential,
   id: 'http-get-so-invoicing',
   name: 'GET Sales Order p/ Faturar',
   type: 'n8n-nodes-base.httpRequest',
@@ -199,7 +213,6 @@ const httpSubmitSo = {
     sendHeaders: true,
     headerParameters: {
       parameters: [
-        { name: 'Authorization', value: 'token cfed787415906be:14c92a149e624db' },
         { name: 'Host', value: 'erp.robo.net.br' }
       ]
     },
@@ -208,6 +221,7 @@ const httpSubmitSo = {
     jsonBody: '{\n  "docstatus": 1\n}',
     options: {}
   },
+  credentials: erpnextCredential,
   id: 'http-submit-so',
   name: 'Submit Sales Order',
   type: 'n8n-nodes-base.httpRequest',
@@ -222,7 +236,6 @@ const httpMakeSalesInvoice = {
     sendHeaders: true,
     headerParameters: {
       parameters: [
-        { name: 'Authorization', value: 'token cfed787415906be:14c92a149e624db' },
         { name: 'Host', value: 'erp.robo.net.br' }
       ]
     },
@@ -231,6 +244,7 @@ const httpMakeSalesInvoice = {
     jsonBody: '={\n  "source_name": "{{ $json.so_name || $json.data?.name || $(\'Prepara Chamada Faturamento\').first().json.so_name }}"\n}',
     options: {}
   },
+  credentials: erpnextCredential,
   id: 'http-make-sales-invoice',
   name: 'Method make_sales_invoice',
   type: 'n8n-nodes-base.httpRequest',
@@ -261,7 +275,6 @@ const httpCreateSalesInvoice = {
     sendHeaders: true,
     headerParameters: {
       parameters: [
-        { name: 'Authorization', value: 'token cfed787415906be:14c92a149e624db' },
         { name: 'Host', value: 'erp.robo.net.br' }
       ]
     },
@@ -270,6 +283,7 @@ const httpCreateSalesInvoice = {
     jsonBody: '={{ JSON.stringify($json) }}',
     options: {}
   },
+  credentials: erpnextCredential,
   id: 'http-create-sales-invoice',
   name: 'POST Sales Invoice',
   type: 'n8n-nodes-base.httpRequest',
@@ -284,7 +298,6 @@ const httpSubmitSalesInvoice = {
     sendHeaders: true,
     headerParameters: {
       parameters: [
-        { name: 'Authorization', value: 'token cfed787415906be:14c92a149e624db' },
         { name: 'Host', value: 'erp.robo.net.br' }
       ]
     },
@@ -293,6 +306,7 @@ const httpSubmitSalesInvoice = {
     jsonBody: '{\n  "docstatus": 1\n}',
     options: {}
   },
+  credentials: erpnextCredential,
   id: 'http-submit-sales-invoice',
   name: 'Submit Sales Invoice',
   type: 'n8n-nodes-base.httpRequest',
@@ -453,6 +467,19 @@ ecoWorkflow.nodes = [
   sendTrackingEmail
 ];
 
+ecoWorkflow.nodes.forEach(n => {
+  if (n.parameters?.headerParameters?.parameters) {
+    n.parameters.headerParameters.parameters = n.parameters.headerParameters.parameters.filter(
+      p => p.name !== 'Authorization'
+    );
+  }
+  if (n.type === 'n8n-nodes-base.httpRequest' && (n.parameters?.url || '').includes('erpnext-backend')) {
+    n.parameters.authentication = 'genericCredentialType';
+    n.parameters.genericAuthType = 'httpHeaderAuth';
+    n.credentials = erpnextCredential;
+  }
+});
+
 // Conexões do eco-eventos
 ecoWorkflow.connections['Webhook Eventos'] = {
   main: [[{ node: 'Normaliza Evento', type: 'main', index: 0 }]]
@@ -567,7 +594,7 @@ const dnWorkflow = {
             {
               id: 'check-token',
               leftValue: '={{ $json.headers["x-erp-token"] }}',
-              rightValue: 'sec_erp_stock_84b729f01a8',
+              rightValue: '={{ $env.ERP_STOCK_WEBHOOK_SECRET }}',
               operator: { type: 'string', operation: 'equals' }
             }
           ],
@@ -620,17 +647,19 @@ return [{
     },
     {
       parameters: {
+        authentication: 'genericCredentialType',
+        genericAuthType: 'httpHeaderAuth',
         method: 'GET',
         url: '=http://erpnext-backend:8000/api/resource/Sales%20Order/{{ encodeURIComponent($json.so_name) }}',
         sendHeaders: true,
         headerParameters: {
           parameters: [
-            { name: 'Authorization', value: 'token cfed787415906be:14c92a149e624db' },
             { name: 'Host', value: 'erp.robo.net.br' }
           ]
         },
         options: {}
       },
+      credentials: erpnextCredential,
       id: 'http-get-so-for-dn',
       name: 'GET Sales Order no ERP',
       type: 'n8n-nodes-base.httpRequest',
@@ -712,24 +741,14 @@ spawnSync('docker', ['exec', '-i', 'postgres', 'psql', '-U', 'postgres', '-d', '
   encoding: 'utf8'
 });
 
-const upsertDnSql = `
-INSERT INTO workflow_entity (id, name, active, nodes, connections, settings, "createdAt", "updatedAt")
-VALUES (
-  '${dnId}',
-  'plataforma-erp-dn',
-  true,
-  $$${JSON.stringify(dnWorkflow.nodes)}$$::json,
-  $$${JSON.stringify(dnWorkflow.connections)}$$::json,
-  $$${JSON.stringify(dnWorkflow.settings)}$$::json,
-  NOW(),
-  NOW()
-)
-ON CONFLICT (id) DO UPDATE 
-SET nodes = EXCLUDED.nodes,
-    connections = EXCLUDED.connections,
-    settings = EXCLUDED.settings,
+const updateDnSql = `
+UPDATE workflow_entity 
+SET nodes = $$${JSON.stringify(dnWorkflow.nodes)}$$::json,
+    connections = $$${JSON.stringify(dnWorkflow.connections)}$$::json,
+    settings = $$${JSON.stringify(dnWorkflow.settings)}$$::json,
     active = true,
-    "updatedAt" = NOW();
+    "updatedAt" = NOW()
+WHERE id = '${dnId}';
 
 UPDATE workflow_history
 SET nodes = $$${JSON.stringify(dnWorkflow.nodes)}$$::json,
@@ -738,10 +757,11 @@ SET nodes = $$${JSON.stringify(dnWorkflow.nodes)}$$::json,
 WHERE "workflowId" = '${dnId}';
 `;
 
-spawnSync('docker', ['exec', '-i', 'postgres', 'psql', '-U', 'postgres', '-d', 'n8n'], {
-  input: upsertDnSql,
+const dnRes = spawnSync('docker', ['exec', '-i', 'postgres', 'psql', '-U', 'postgres', '-d', 'n8n'], {
+  input: updateDnSql,
   encoding: 'utf8'
 });
+if (dnRes.stderr) console.error('DN DB update error:', dnRes.stderr);
 
 // Exportar workflows
 const exportPath = path.join(__dirname, '../workflows/workflows-fase4-wms.json');

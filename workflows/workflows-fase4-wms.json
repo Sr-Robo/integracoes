@@ -136,16 +136,14 @@
           "headerParameters": {
             "parameters": [
               {
-                "name": "Authorization",
-                "value": "token cfed787415906be:14c92a149e624db"
-              },
-              {
                 "name": "Host",
                 "value": "erp.robo.net.br"
               }
             ]
           },
-          "options": {}
+          "options": {},
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth"
         },
         "id": "http-check-customer",
         "name": "GET Customer no ERP",
@@ -154,7 +152,13 @@
         "position": [
           860,
           180
-        ]
+        ],
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "5c84d711-e401-447a-8f19-38b8fa111111",
+            "name": "ERPNext API (integracoes)"
+          }
+        }
       },
       {
         "parameters": {
@@ -196,10 +200,6 @@
           "headerParameters": {
             "parameters": [
               {
-                "name": "Authorization",
-                "value": "token cfed787415906be:14c92a149e624db"
-              },
-              {
                 "name": "Host",
                 "value": "erp.robo.net.br"
               }
@@ -208,7 +208,9 @@
           "sendBody": true,
           "specifyBody": "json",
           "jsonBody": "={{ JSON.stringify({\n  customer_name: $('Prepara Dados do Pedido').first().json.customerName,\n  customer_type: 'Individual',\n  customer_group: 'Individual',\n  territory: 'Brazil',\n  tax_id: $('Prepara Dados do Pedido').first().json.customerTaxId,\n  custom_external_id: $('Prepara Dados do Pedido').first().json.customerKey\n}) }}",
-          "options": {}
+          "options": {},
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth"
         },
         "id": "http-create-customer",
         "name": "POST Customer no ERP",
@@ -217,7 +219,13 @@
         "position": [
           1300,
           100
-        ]
+        ],
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "5c84d711-e401-447a-8f19-38b8fa111111",
+            "name": "ERPNext API (integracoes)"
+          }
+        }
       },
       {
         "parameters": {
@@ -240,16 +248,14 @@
           "headerParameters": {
             "parameters": [
               {
-                "name": "Authorization",
-                "value": "token cfed787415906be:14c92a149e624db"
-              },
-              {
                 "name": "Host",
                 "value": "erp.robo.net.br"
               }
             ]
           },
-          "options": {}
+          "options": {},
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth"
         },
         "id": "http-check-sales-order",
         "name": "GET Sales Order no ERP",
@@ -258,7 +264,13 @@
         "position": [
           1740,
           180
-        ]
+        ],
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "5c84d711-e401-447a-8f19-38b8fa111111",
+            "name": "ERPNext API (integracoes)"
+          }
+        }
       },
       {
         "parameters": {
@@ -300,10 +312,6 @@
           "headerParameters": {
             "parameters": [
               {
-                "name": "Authorization",
-                "value": "token cfed787415906be:14c92a149e624db"
-              },
-              {
                 "name": "Host",
                 "value": "erp.robo.net.br"
               }
@@ -312,7 +320,9 @@
           "sendBody": true,
           "specifyBody": "json",
           "jsonBody": "={{ JSON.stringify({\n  customer: $('Resolve Customer Name').first().json.resolvedCustomerName,\n  transaction_date: $('Resolve Customer Name').first().json.occurredAt,\n  delivery_date: $('Resolve Customer Name').first().json.occurredAt,\n  currency: 'BRL',\n  company: 'Sr Robo',\n  custom_external_order_id: $('Resolve Customer Name').first().json.orderNumber,\n  items: $('Resolve Customer Name').first().json.items\n}) }}",
-          "options": {}
+          "options": {},
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth"
         },
         "id": "http-create-sales-order",
         "name": "POST Sales Order no ERP",
@@ -321,7 +331,13 @@
         "position": [
           2180,
           100
-        ]
+        ],
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "5c84d711-e401-447a-8f19-38b8fa111111",
+            "name": "ERPNext API (integracoes)"
+          }
+        }
       },
       {
         "parameters": {
@@ -344,10 +360,6 @@
           "headerParameters": {
             "parameters": [
               {
-                "name": "Authorization",
-                "value": "token cfed787415906be:14c92a149e624db"
-              },
-              {
                 "name": "Host",
                 "value": "erp.robo.net.br"
               }
@@ -356,7 +368,9 @@
           "sendBody": true,
           "specifyBody": "json",
           "jsonBody": "={{ JSON.stringify({\n  tax_id: $('Prepara Dados do Pedido').first().json.customerTaxId\n}) }}",
-          "options": {}
+          "options": {},
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth"
         },
         "id": "http-put-customer-tax-id",
         "name": "PUT Customer Tax ID",
@@ -365,7 +379,13 @@
         "position": [
           1420,
           100
-        ]
+        ],
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "5c84d711-e401-447a-8f19-38b8fa111111",
+            "name": "ERPNext API (integracoes)"
+          }
+        }
       },
       {
         "parameters": {
@@ -472,16 +492,20 @@
           "headerParameters": {
             "parameters": [
               {
-                "name": "Authorization",
-                "value": "token cfed787415906be:14c92a149e624db"
-              },
-              {
                 "name": "Host",
                 "value": "erp.robo.net.br"
               }
             ]
           },
-          "options": {}
+          "options": {},
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth"
+        },
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "5c84d711-e401-447a-8f19-38b8fa111111",
+            "name": "ERPNext API (integracoes)"
+          }
         },
         "id": "http-get-so-invoicing",
         "name": "GET Sales Order p/ Faturar",
@@ -586,10 +610,6 @@
           "headerParameters": {
             "parameters": [
               {
-                "name": "Authorization",
-                "value": "token cfed787415906be:14c92a149e624db"
-              },
-              {
                 "name": "Host",
                 "value": "erp.robo.net.br"
               }
@@ -598,7 +618,15 @@
           "sendBody": true,
           "specifyBody": "json",
           "jsonBody": "{\n  \"docstatus\": 1\n}",
-          "options": {}
+          "options": {},
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth"
+        },
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "5c84d711-e401-447a-8f19-38b8fa111111",
+            "name": "ERPNext API (integracoes)"
+          }
         },
         "id": "http-submit-so",
         "name": "Submit Sales Order",
@@ -617,10 +645,6 @@
           "headerParameters": {
             "parameters": [
               {
-                "name": "Authorization",
-                "value": "token cfed787415906be:14c92a149e624db"
-              },
-              {
                 "name": "Host",
                 "value": "erp.robo.net.br"
               }
@@ -629,7 +653,15 @@
           "sendBody": true,
           "specifyBody": "json",
           "jsonBody": "={\n  \"source_name\": \"{{ $json.so_name || $json.data?.name || $('Prepara Chamada Faturamento').first().json.so_name }}\"\n}",
-          "options": {}
+          "options": {},
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth"
+        },
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "5c84d711-e401-447a-8f19-38b8fa111111",
+            "name": "ERPNext API (integracoes)"
+          }
         },
         "id": "http-make-sales-invoice",
         "name": "Method make_sales_invoice",
@@ -661,10 +693,6 @@
           "headerParameters": {
             "parameters": [
               {
-                "name": "Authorization",
-                "value": "token cfed787415906be:14c92a149e624db"
-              },
-              {
                 "name": "Host",
                 "value": "erp.robo.net.br"
               }
@@ -673,7 +701,15 @@
           "sendBody": true,
           "specifyBody": "json",
           "jsonBody": "={{ JSON.stringify($json) }}",
-          "options": {}
+          "options": {},
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth"
+        },
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "5c84d711-e401-447a-8f19-38b8fa111111",
+            "name": "ERPNext API (integracoes)"
+          }
         },
         "id": "http-create-sales-invoice",
         "name": "POST Sales Invoice",
@@ -692,10 +728,6 @@
           "headerParameters": {
             "parameters": [
               {
-                "name": "Authorization",
-                "value": "token cfed787415906be:14c92a149e624db"
-              },
-              {
                 "name": "Host",
                 "value": "erp.robo.net.br"
               }
@@ -704,7 +736,15 @@
           "sendBody": true,
           "specifyBody": "json",
           "jsonBody": "{\n  \"docstatus\": 1\n}",
-          "options": {}
+          "options": {},
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth"
+        },
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "5c84d711-e401-447a-8f19-38b8fa111111",
+            "name": "ERPNext API (integracoes)"
+          }
         },
         "id": "http-submit-sales-invoice",
         "name": "Submit Sales Invoice",
@@ -1120,7 +1160,7 @@
       }
     },
     "createdAt": "2026-09-01T22:38:47.954+00:00",
-    "updatedAt": "2026-09-04T18:47:37.452+00:00",
+    "updatedAt": "2026-09-05T02:25:24.872+00:00",
     "settings": {
       "executionOrder": "v1",
       "saveDataErrorExecution": "all",
@@ -1136,15 +1176,15 @@
     "meta": null,
     "parentFolderId": null,
     "isArchived": false,
-    "versionCounter": 7,
+    "versionCounter": 9,
     "description": null,
     "activeVersionId": "0d880446-a340-4dfe-893a-0663a2c25961",
     "nodeGroups": [],
     "sourceWorkflowId": null
   },
   {
-    "updatedAt": "2026-09-04T18:48:43.017Z",
-    "createdAt": "2026-09-04T18:48:43.017Z",
+    "updatedAt": "2026-09-05T02:28:53.863Z",
+    "createdAt": "2026-09-05T02:28:53.863Z",
     "id": "e89e3a75-b4c1-4b77-983b-f33333333333",
     "name": "plataforma-erp-dn",
     "description": "Gera Shipment no EverShop a partir da Delivery Note do ERPNext (Fase 4 - W4)",
@@ -1180,7 +1220,7 @@
               {
                 "id": "check-token",
                 "leftValue": "={{ $json.headers[\"x-erp-token\"] }}",
-                "rightValue": "sec_erp_stock_84b729f01a8",
+                "rightValue": "={{ $env.ERP_STOCK_WEBHOOK_SECRET }}",
                 "operator": {
                   "type": "string",
                   "operation": "equals"
@@ -1215,15 +1255,13 @@
       },
       {
         "parameters": {
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth",
           "method": "GET",
           "url": "=http://erpnext-backend:8000/api/resource/Sales%20Order/{{ encodeURIComponent($json.so_name) }}",
           "sendHeaders": true,
           "headerParameters": {
             "parameters": [
-              {
-                "name": "Authorization",
-                "value": "token cfed787415906be:14c92a149e624db"
-              },
               {
                 "name": "Host",
                 "value": "erp.robo.net.br"
@@ -1231,6 +1269,12 @@
             ]
           },
           "options": {}
+        },
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "5c84d711-e401-447a-8f19-38b8fa111111",
+            "name": "ERPNext API (integracoes)"
+          }
         },
         "id": "http-get-so-for-dn",
         "name": "GET Sales Order no ERP",

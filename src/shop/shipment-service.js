@@ -2,6 +2,10 @@ const { Client } = require('pg');
 const axios = require('axios');
 
 async function createShopShipment({ orderNumber, trackingCode, carrier = 'custom' }) {
+  if (!process.env.EVERSHOP_ADMIN_EMAIL || !process.env.EVERSHOP_ADMIN_PASSWORD) {
+    throw new Error('EVERSHOP_ADMIN_EMAIL and EVERSHOP_ADMIN_PASSWORD environment variables are required');
+  }
+
   const evershopDb = new Client({
     host: process.env.EVERSHOP_DB_HOST || 'ecommerce_database',
     port: parseInt(process.env.EVERSHOP_DB_PORT || '5432', 10),
@@ -46,8 +50,8 @@ async function createShopShipment({ orderNumber, trackingCode, carrier = 'custom
 
     // Login no EverShop
     const loginRes = await axios.post('http://ecommerce_evershop:3000/api/user/tokens', {
-      email: 'integracoes@robo.net.br',
-      password: 'IntegracoesRobo2026!Sec'
+      email: process.env.EVERSHOP_ADMIN_EMAIL,
+      password: process.env.EVERSHOP_ADMIN_PASSWORD
     });
     const token = loginRes.data.data.accessToken;
 
